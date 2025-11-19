@@ -14,25 +14,25 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserServImpl struct {
+type UserServMemberImpl struct {
 	UserRepo  repositories.UserRepo
-	Db        *gorm.DB
+	DB        *gorm.DB
 	Validator *validator.Validate
 	JwtKey    string
 }
 
-func NewUserServImpl(userRepo repositories.UserRepo, db *gorm.DB, validator *validator.Validate, jwtKey string) *UserServImpl {
-	return &UserServImpl{UserRepo: userRepo, Db: db, Validator: validator, JwtKey: jwtKey}
+func NewUserServMemberImpl(userRepo repositories.UserRepo, DB *gorm.DB, validator *validator.Validate, jwtKey string) *UserServMemberImpl {
+	return &UserServMemberImpl{UserRepo: userRepo, DB: DB, Validator: validator, JwtKey: jwtKey}
 }
 
-func (serv *UserServImpl) RegisterMember(request user.RegisterRequest) error {
+func (serv *UserServMemberImpl) Register(request user.RegisterRequest) error {
 	errValidator := helper.ErrValidator(request, serv.Validator)
 	if errValidator != nil {
 		return errValidator
 	}
 
 	// Find user by email
-	findUser, _ := serv.UserRepo.FindByEmail(serv.Db, request.Email)
+	findUser, _ := serv.UserRepo.FindByEmail(serv.DB, request.Email)
 	if findUser != nil {
 		return fmt.Errorf("user already exists")
 	}
@@ -42,23 +42,24 @@ func (serv *UserServImpl) RegisterMember(request user.RegisterRequest) error {
 	model.Role = domains.RoleMember
 
 	// Call repo
-	errCreate := serv.UserRepo.Create(serv.Db, model)
+	errCreate := serv.UserRepo.Create(serv.DB, model)
 	if errCreate != nil {
 		log.Printf("[UserRepo.Create] error: %v", errCreate)
 		return fmt.Errorf("failed to register, please try again later")
 	}
 
 	return nil
+
 }
 
-func (serv *UserServImpl) LoginMember(request user.LoginRequest) (*string, error) {
+func (serv *UserServMemberImpl) Login(request user.LoginRequest) (*string, error) {
 	errValidator := helper.ErrValidator(request, serv.Validator)
 	if errValidator != nil {
 		return nil, errValidator
 	}
 
 	// Find user by email
-	findUser, errFindUser := serv.UserRepo.FindByEmail(serv.Db, request.Email)
+	findUser, errFindUser := serv.UserRepo.FindByEmail(serv.DB, request.Email)
 	if findUser == nil || errFindUser != nil {
 		log.Printf("[UserRepo.FindByEmail] error: %v", errFindUser)
 		return nil, fmt.Errorf("user not found")
@@ -68,7 +69,7 @@ func (serv *UserServImpl) LoginMember(request user.LoginRequest) (*string, error
 	model := user.LoginRequestToDomains(request)
 
 	// Check Password
-	valid, errPw := serv.UserRepo.CheckPasswordValid(serv.Db, model)
+	valid, errPw := serv.UserRepo.CheckPasswordValid(serv.DB, model)
 	if errPw != nil {
 		log.Printf("[UserRepo.CheckPasswordValid] error: %v", errPw)
 		return nil, fmt.Errorf("failed to login, please try again later")
@@ -92,9 +93,9 @@ func (serv *UserServImpl) LoginMember(request user.LoginRequest) (*string, error
 	return &jwt, nil
 }
 
-func (serv *UserServImpl) Logout(userId int) error {
+func (serv *UserServMemberImpl) Logout(userId int) error {
 	// Call repo
-	err := serv.UserRepo.ResetToken(serv.Db, userId)
+	err := serv.UserRepo.ResetToken(serv.DB, userId)
 	if err != nil {
 		log.Printf("[UserRepo.ResetToken] error: %v", err)
 		return fmt.Errorf("failed to logout, please try again later")
@@ -103,7 +104,7 @@ func (serv *UserServImpl) Logout(userId int) error {
 	return nil
 }
 
-func (serv *UserServImpl) UpdateData(request user.UpdateDataRequest) (*string, error) {
+func (serv *UserServMemberImpl) UpdateData(request user.UpdateDataRequest) (*string, error) {
 	errValidator := helper.ErrValidator(request, serv.Validator)
 	if errValidator != nil {
 		return nil, errValidator
@@ -113,7 +114,7 @@ func (serv *UserServImpl) UpdateData(request user.UpdateDataRequest) (*string, e
 	model := user.UpdateDataRequestToDomain(request)
 
 	// Call repo
-	result, err := serv.UserRepo.Update(serv.Db, model)
+	result, err := serv.UserRepo.Update(serv.DB, model)
 	if err != nil {
 		log.Printf("[UserRepo.Update] error: %v", err)
 		return nil, fmt.Errorf("failed to update, please try again later")
