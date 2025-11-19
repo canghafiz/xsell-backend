@@ -1,7 +1,7 @@
 package exception
 
 import (
-	"be-lonemovie/helper"
+	"be/helper"
 	"fmt"
 	"net/http"
 	"strings"

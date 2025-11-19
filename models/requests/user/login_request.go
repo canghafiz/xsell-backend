@@ -1,7 +1,6 @@
 package user
 
 import (
-	"be/helper"
 	"be/models/domains"
 )
 
@@ -13,6 +12,6 @@ type LoginRequest struct {
 func LoginRequestToDomains(request LoginRequest) domains.Users {
 	return domains.Users{
 		Email:    request.Email,
-		Password: helper.HashedPassword(request.Password),
+		Password: request.Password,
 	}
 }

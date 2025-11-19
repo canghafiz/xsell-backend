@@ -1,10 +1,12 @@
-package be
+package main
 
 import (
 	"be/app"
 	"be/helper"
 	"os"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
@@ -24,6 +26,7 @@ func main() {
 	}
 
 	// Env
+	port := os.Getenv("APP_PORT")
 	jwtKey := os.Getenv("JWT_KEY")
 
 	// Database Config
@@ -39,4 +42,28 @@ func main() {
 
 	// Dependency
 	memberDependency := app.NewMemberDependency(db, validate, jwtKey)
+
+	// Setup Router
+	engine := gin.Default()
+	engine.Use(cors.New(cors.Config{
+		AllowOrigins:  []string{"*"},
+		AllowMethods:  []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:  []string{"Origin", "Content-Type", "Accept", "Authorization", "Email", "Code"},
+		ExposeHeaders: []string{"Content-Length"},
+		MaxAge:        12 * time.Hour,
+	}))
+	routerParent := app.Router{
+		MemberDependency: memberDependency,
+
+		JwtKey: jwtKey,
+		Engine: engine,
+	}
+	router := app.NewRouter(routerParent)
+
+	// Run Server
+	if port == "" {
+		port = ":3001"
+	}
+	err = router.Engine.Run(port)
+	helper.FatalError(err)
 }

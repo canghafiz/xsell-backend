@@ -22,3 +22,37 @@ func GenerateJWT(jwtKey string, duration time.Duration, data interface{}) (strin
 
 	return token.SignedString([]byte(jwtKey))
 }
+
+func DecodeJWT(tokenString, jwtKey string) (map[string]interface{}, error) {
+	if jwtKey == "" {
+		return nil, fmt.Errorf("JWT key is empty")
+	}
+
+	// Parse token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method")
+		}
+		return []byte(jwtKey), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Ambil claims
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	// Ambil field "data"
+	data, ok := claims["data"].(map[string]interface{})
+	if !ok {
+		return map[string]interface{}{
+			"data": claims["data"],
+		}, nil
+	}
+
+	return data, nil
+}

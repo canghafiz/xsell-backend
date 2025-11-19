@@ -4,6 +4,7 @@ import (
 	"be/helper"
 	"be/models/domains"
 	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -24,13 +25,42 @@ func (repo *UserRepoImpl) Create(db *gorm.DB, user domains.Users) error {
 	return nil
 }
 
+func (repo *UserRepoImpl) UpdateToken(db *gorm.DB, user domains.Users) error {
+	err := db.
+		Model(&domains.Users{}).
+		Where("email = ?", user.Email).
+		Updates(map[string]interface{}{
+			"token":        user.Token,
+			"token_expire": time.Now().Add(24 * time.Hour),
+		}).Error
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *UserRepoImpl) CheckTokenValid(db *gorm.DB, user domains.Users) bool {
+	var count int64
+
+	result := db.
+		Model(&user).
+		Where("email = ? AND token = ?", user.Email, user.Token).
+		Count(&count)
+
+	if result.Error != nil {
+		return false
+	}
+
+	return int(count) > 0
+}
+
 func (repo *UserRepoImpl) Update(db *gorm.DB, user domains.Users) (*domains.Users, error) {
 	result := db.
 		Model(&domains.Users{}).
-		Where("id = ?", user.UserId).
+		Where("user_id = ?", user.UserId).
 		Updates(map[string]interface{}{
-			"email":             user.Email,
-			"role":              user.Role,
 			"first_name":        user.FirstName,
 			"last_name":         user.LastName,
 			"photo_profile_url": user.PhotoProfileUrl,
@@ -44,7 +74,13 @@ func (repo *UserRepoImpl) Update(db *gorm.DB, user domains.Users) (*domains.User
 		return nil, fmt.Errorf("user with ID %d not found or no changes were made", user.UserId)
 	}
 
-	return &user, nil
+	var updatedData domains.Users
+	err := db.Where("user_id = ?", user.UserId).First(&updatedData).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &updatedData, nil
 }
 
 func (repo *UserRepoImpl) FindByEmail(db *gorm.DB, email string) (*domains.Users, error) {
@@ -70,10 +106,10 @@ func (repo *UserRepoImpl) CheckPasswordValid(db *gorm.DB, user domains.Users) (b
 	return helper.CheckPassword(result.Password, user.Password), nil
 }
 
-func (repo *UserRepoImpl) ResetToken(db *gorm.DB, id int) error {
+func (repo *UserRepoImpl) ResetToken(db *gorm.DB, email string) error {
 	result := db.
 		Model(&domains.Users{}).
-		Where("id = ?", id).
+		Where("email = ?", email).
 		Updates(map[string]interface{}{
 			"token":        nil,
 			"token_expire": nil,

@@ -90,12 +90,23 @@ func (serv *UserServMemberImpl) Login(request user.LoginRequest) (*string, error
 		return nil, fmt.Errorf("failed to login, please try again later")
 	}
 
+	// Update user token
+	tokenModel := domains.Users{
+		Email: request.Email,
+		Token: &jwt,
+	}
+	errUpToken := serv.UserRepo.UpdateToken(serv.DB, tokenModel)
+	if errUpToken != nil {
+		log.Printf("[UserRepo.UpdateToken] error: %v", errJwt)
+		return nil, fmt.Errorf("failed to login, please try again later")
+	}
+
 	return &jwt, nil
 }
 
-func (serv *UserServMemberImpl) Logout(userId int) error {
+func (serv *UserServMemberImpl) Logout(email string) error {
 	// Call repo
-	err := serv.UserRepo.ResetToken(serv.DB, userId)
+	err := serv.UserRepo.ResetToken(serv.DB, email)
 	if err != nil {
 		log.Printf("[UserRepo.ResetToken] error: %v", err)
 		return fmt.Errorf("failed to logout, please try again later")
@@ -104,7 +115,7 @@ func (serv *UserServMemberImpl) Logout(userId int) error {
 	return nil
 }
 
-func (serv *UserServMemberImpl) UpdateData(request user.UpdateDataRequest) (*string, error) {
+func (serv *UserServMemberImpl) UpdateData(request user.UpdateDataRequest) (*user2.SingleResource, error) {
 	errValidator := helper.ErrValidator(request, serv.Validator)
 	if errValidator != nil {
 		return nil, errValidator
@@ -120,16 +131,5 @@ func (serv *UserServMemberImpl) UpdateData(request user.UpdateDataRequest) (*str
 		return nil, fmt.Errorf("failed to update, please try again later")
 	}
 
-	// User Resource
-	resource := user2.ToSingleResource(result)
-
-	// Create JWT Token
-	duration := time.Hour * 24
-	jwt, errJwt := helper.GenerateJWT(serv.JwtKey, duration, &resource)
-	if errJwt != nil {
-		log.Printf("[GenerateJWT] error: %v", errJwt)
-		return nil, fmt.Errorf("failed to login, please try again later")
-	}
-
-	return &jwt, nil
+	return user2.ToSingleResource(result), nil
 }

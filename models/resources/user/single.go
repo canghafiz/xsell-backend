@@ -11,8 +11,8 @@ type SingleResource struct {
 	PhotoProfile *string          `json:"photo_profile"`
 }
 
-func ToSingleResource(user *domains.Users) SingleResource {
-	return SingleResource{
+func ToSingleResource(user *domains.Users) *SingleResource {
+	return &SingleResource{
 		UserId:       user.UserId,
 		Email:        user.Email,
 		Role:         user.Role,

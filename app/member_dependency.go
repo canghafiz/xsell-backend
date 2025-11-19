@@ -13,6 +13,7 @@ import (
 )
 
 type MemberDependency struct {
+	Db       *gorm.DB
 	UserRepo repositories.UserRepo
 	UserServ member.UserServMember
 	UserCont cont.UserContMember
@@ -28,5 +29,5 @@ func NewMemberDependency(db *gorm.DB, validator *validator.Validate, jwtKey stri
 	// Controllers
 	userCont := implCont.NewUserContMemberImpl(userServ)
 
-	return &MemberDependency{UserRepo: userRepo, UserServ: userServ, UserCont: userCont}
+	return &MemberDependency{Db: db, UserRepo: userRepo, UserServ: userServ, UserCont: userCont}
 }

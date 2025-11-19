@@ -79,11 +79,10 @@ func (cont *UserContMemberImpl) Login(context *gin.Context) {
 }
 
 func (cont *UserContMemberImpl) Logout(context *gin.Context) {
-	userIdStr := context.Param("userId")
-	userId, _ := strconv.Atoi(userIdStr)
+	email := context.Param("email")
 
 	// Call Service
-	errServ := cont.UserService.Logout(userId)
+	errServ := cont.UserService.Logout(email)
 	if errServ != nil {
 		exception.ErrorHandler(context, errServ)
 		return
@@ -104,8 +103,13 @@ func (cont *UserContMemberImpl) Logout(context *gin.Context) {
 }
 
 func (cont *UserContMemberImpl) UpdateData(context *gin.Context) {
+	userIdStr := context.Param("userId")
+	userId, _ := strconv.Atoi(userIdStr)
+
 	// Parse Request Body
-	request := user.UpdateDataRequest{}
+	request := user.UpdateDataRequest{
+		UserId: userId,
+	}
 	errParse := helper.ReadFromRequestBody(context, &request)
 	if errParse != nil {
 		exception.ErrorHandler(context, errParse)
