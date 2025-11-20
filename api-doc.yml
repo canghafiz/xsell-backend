@@ -7,7 +7,7 @@ info:
 
 host: "localhost"
 
-basePath: /api/v1/member
+basePath: /api/v1/member/
 
 # Models
 definitions:
