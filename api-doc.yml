@@ -7,7 +7,7 @@ info:
 
 host: "localhost"
 
-basePath: /api/v1/member/
+basePath: /api/v1/member
 
 # Models
 definitions:
@@ -121,7 +121,7 @@ definitions:
 
 # Url
 paths:
-  user/login:
+  /user/login:
     post:
       tags:
         - "Authentication"
@@ -144,7 +144,7 @@ paths:
         400:
           description: ""
 
-  user/register:
+  /user/register:
     post:
       tags:
         - "Authentication"
@@ -165,7 +165,7 @@ paths:
           schema:
             $ref: "#/definitions/regisResponse"
 
-  user/logout/{email}:
+  /user/logout/{email}:
     delete:
       tags:
         - "Authentication"
@@ -189,7 +189,7 @@ paths:
           schema:
             $ref: "#/definitions/logoutResponse"
 
-  user/{userId}:
+  /user/{userId}:
     put:
       tags:
         - "User Data"
