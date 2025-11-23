@@ -7,6 +7,7 @@ type Products struct {
 	ListingUserId     int              `gorm:"column:listing_user_id"`
 	CategoryId        int              `gorm:"column:category_id"`
 	Title             string           `gorm:"column:title"`
+	ProductSlug       string           `gorm:"column:product_slug"`
 	Description       string           `gorm:"column:description"`
 	Price             float64          `gorm:"column:price"`
 	Condition         ProductCondition `gorm:"column:condition"`
