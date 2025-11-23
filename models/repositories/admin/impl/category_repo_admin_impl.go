@@ -21,10 +21,17 @@ func (repo *CategoryRepoAdminImpl) Update(db *gorm.DB, category domains.Categori
 	if category.CategoryId == 0 {
 		return gorm.ErrInvalidValue
 	}
-	return db.Model(&domains.Categories{}).
-		Where("category_id = ?", category.CategoryId).
-		Select("category_name", "description", "icon").
-		Updates(category).Error
+
+	var cat domains.Categories
+	if err := db.First(&cat, category.CategoryId).Error; err != nil {
+		return err
+	}
+
+	cat.CategoryName = category.CategoryName
+	cat.Description = category.Description
+	cat.Icon = category.Icon
+
+	return db.Save(&cat).Error
 }
 
 func (repo *CategoryRepoAdminImpl) Delete(db *gorm.DB, category domains.Categories) error {

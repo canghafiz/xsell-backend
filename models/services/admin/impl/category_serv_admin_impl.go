@@ -48,7 +48,7 @@ func (serv *CategoryServAdminImpl) Update(request category.UpdateRequest) error 
 	model := category.UpdateRequestToDomain(request)
 
 	// Call repo
-	err := serv.CategoryRepo.Create(serv.Db, model)
+	err := serv.CategoryRepo.Update(serv.Db, model)
 	if err != nil {
 		log.Printf("[CategoryAdminRepo.Update] error: %v", err)
 		return fmt.Errorf("failed to update category, please try again later")
