@@ -61,6 +61,7 @@ CREATE TABLE UserVerified (
 CREATE TABLE Categories (
                             category_id SERIAL PRIMARY KEY,
                             category_name VARCHAR(50) NOT NULL UNIQUE,
+                            category_slug VARCHAR(50) NOT NULL UNIQUE,
                             description TEXT,
                             icon VARCHAR(255),
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -72,6 +73,7 @@ CREATE TABLE Products (
                           product_id SERIAL PRIMARY KEY,
                           listing_user_id INTEGER REFERENCES Users(user_id) ON DELETE SET NULL,
                           category_id INTEGER NOT NULL REFERENCES Categories(category_id) ON DELETE RESTRICT,
+                          product_slug VARCHAR(50) NOT NULL UNIQUE,
                           title VARCHAR(255) NOT NULL,
                           description TEXT NOT NULL,
                           price DECIMAL(12,2) DEFAULT 0,
