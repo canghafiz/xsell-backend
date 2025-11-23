@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	"be/helper"
+	"be/helpers"
 	"be/models/domains"
 	"be/models/repositories"
 	"net/http"
@@ -41,7 +41,7 @@ func AuthMiddleware(db *gorm.DB, userRepo repositories.UserRepo, jwtKey string) 
 		}
 
 		// 4. Decode Token
-		result, errDecode := helper.DecodeJWT(tokenString, jwtKey)
+		result, errDecode := helpers.DecodeJWT(tokenString, jwtKey)
 		if errDecode != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"message": "Invalid authorization format",

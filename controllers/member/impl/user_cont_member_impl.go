@@ -1,8 +1,8 @@
 package impl
 
 import (
-	"be/exception"
-	"be/helper"
+	"be/exceptions"
+	"be/helpers"
 	"be/models/requests/user"
 	"be/models/services/member"
 	"strconv"
@@ -21,29 +21,29 @@ func NewUserContMemberImpl(userService member.UserServMember) *UserContMemberImp
 func (cont *UserContMemberImpl) Register(context *gin.Context) {
 	// Parse Request Body
 	request := user.RegisterRequest{}
-	errParse := helper.ReadFromRequestBody(context, &request)
+	errParse := helpers.ReadFromRequestBody(context, &request)
 	if errParse != nil {
-		exception.ErrorHandler(context, errParse)
+		exceptions.ErrorHandler(context, errParse)
 		return
 	}
 
 	// Call Service
 	errServ := cont.UserService.Register(request)
 	if errServ != nil {
-		exception.ErrorHandler(context, errServ)
+		exceptions.ErrorHandler(context, errServ)
 		return
 	}
 
 	// Response
-	response := helper.ApiResponse{
+	response := helpers.ApiResponse{
 		Success: true,
 		Code:    200,
 		Data:    nil,
 	}
 
-	errResponse := helper.WriteToResponseBody(context, response.Code, response)
+	errResponse := helpers.WriteToResponseBody(context, response.Code, response)
 	if errResponse != nil {
-		exception.ErrorHandler(context, errResponse)
+		exceptions.ErrorHandler(context, errResponse)
 		return
 	}
 }
@@ -51,29 +51,29 @@ func (cont *UserContMemberImpl) Register(context *gin.Context) {
 func (cont *UserContMemberImpl) Login(context *gin.Context) {
 	// Parse Request Body
 	request := user.LoginRequest{}
-	errParse := helper.ReadFromRequestBody(context, &request)
+	errParse := helpers.ReadFromRequestBody(context, &request)
 	if errParse != nil {
-		exception.ErrorHandler(context, errParse)
+		exceptions.ErrorHandler(context, errParse)
 		return
 	}
 
 	// Call Service
 	result, errServ := cont.UserService.Login(request)
 	if errServ != nil {
-		exception.ErrorHandler(context, errServ)
+		exceptions.ErrorHandler(context, errServ)
 		return
 	}
 
 	// Response
-	response := helper.ApiResponse{
+	response := helpers.ApiResponse{
 		Success: true,
 		Code:    200,
 		Data:    result,
 	}
 
-	errResponse := helper.WriteToResponseBody(context, response.Code, response)
+	errResponse := helpers.WriteToResponseBody(context, response.Code, response)
 	if errResponse != nil {
-		exception.ErrorHandler(context, errResponse)
+		exceptions.ErrorHandler(context, errResponse)
 		return
 	}
 }
@@ -84,20 +84,20 @@ func (cont *UserContMemberImpl) Logout(context *gin.Context) {
 	// Call Service
 	errServ := cont.UserService.Logout(email)
 	if errServ != nil {
-		exception.ErrorHandler(context, errServ)
+		exceptions.ErrorHandler(context, errServ)
 		return
 	}
 
 	// Response
-	response := helper.ApiResponse{
+	response := helpers.ApiResponse{
 		Success: true,
 		Code:    200,
 		Data:    nil,
 	}
 
-	errResponse := helper.WriteToResponseBody(context, response.Code, response)
+	errResponse := helpers.WriteToResponseBody(context, response.Code, response)
 	if errResponse != nil {
-		exception.ErrorHandler(context, errResponse)
+		exceptions.ErrorHandler(context, errResponse)
 		return
 	}
 }
@@ -110,29 +110,29 @@ func (cont *UserContMemberImpl) UpdateData(context *gin.Context) {
 	request := user.UpdateDataRequest{
 		UserId: userId,
 	}
-	errParse := helper.ReadFromRequestBody(context, &request)
+	errParse := helpers.ReadFromRequestBody(context, &request)
 	if errParse != nil {
-		exception.ErrorHandler(context, errParse)
+		exceptions.ErrorHandler(context, errParse)
 		return
 	}
 
 	// Call Service
 	result, errServ := cont.UserService.UpdateData(request)
 	if errServ != nil {
-		exception.ErrorHandler(context, errServ)
+		exceptions.ErrorHandler(context, errServ)
 		return
 	}
 
 	// Response
-	response := helper.ApiResponse{
+	response := helpers.ApiResponse{
 		Success: true,
 		Code:    200,
 		Data:    result,
 	}
 
-	errResponse := helper.WriteToResponseBody(context, response.Code, response)
+	errResponse := helpers.WriteToResponseBody(context, response.Code, response)
 	if errResponse != nil {
-		exception.ErrorHandler(context, errResponse)
+		exceptions.ErrorHandler(context, errResponse)
 		return
 	}
 }

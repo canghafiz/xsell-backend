@@ -2,14 +2,16 @@ package category
 
 import "be/models/domains"
 
-type CreateRequest struct {
+type UpdateRequest struct {
+	CategoryId   int    `json:"category_id" validate:"required"`
 	CategoryName string `json:"category_name" validate:"required"`
 	Description  string `json:"description" validate:"required"`
 	Icon         string `json:"icon" validate:"required"`
 }
 
-func CreateRequestToDomain(request CreateRequest) domains.Categories {
+func UpdateRequestToDomain(request UpdateRequest) domains.Categories {
 	return domains.Categories{
+		CategoryId:   request.CategoryId,
 		CategoryName: request.CategoryName,
 		Description:  request.Description,
 		Icon:         request.Icon,

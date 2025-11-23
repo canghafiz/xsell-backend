@@ -1,7 +1,7 @@
 package impl
 
 import (
-	"be/helper"
+	"be/helpers"
 	"be/models/domains"
 	"fmt"
 	"time"
@@ -103,7 +103,7 @@ func (repo *UserRepoImpl) CheckPasswordValid(db *gorm.DB, user domains.Users) (b
 		return false, err
 	}
 
-	return helper.CheckPassword(result.Password, user.Password), nil
+	return helpers.CheckPassword(result.Password, user.Password), nil
 }
 
 func (repo *UserRepoImpl) ResetToken(db *gorm.DB, email string) error {

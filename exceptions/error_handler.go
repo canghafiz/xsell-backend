@@ -1,7 +1,7 @@
-package exception
+package exceptions
 
 import (
-	"be/helper"
+	"be/helpers"
 	"fmt"
 	"net/http"
 	"strings"
@@ -42,22 +42,22 @@ func newError(c *gin.Context, err interface{}) bool {
 		statusCode = http.StatusBadRequest
 	}
 
-	webResponse := helper.ApiResponse{
+	webResponse := helpers.ApiResponse{
 		Success: false,
 		Code:    statusCode,
 		Data:    errMsg,
 	}
 
-	_ = helper.WriteToResponseBody(c, statusCode, webResponse)
+	_ = helpers.WriteToResponseBody(c, statusCode, webResponse)
 	return true
 }
 
 // internalServerError handles all uncaught errors as HTTP 500.
 func internalServerError(c *gin.Context, err interface{}) {
-	webResponse := helper.ApiResponse{
+	webResponse := helpers.ApiResponse{
 		Success: false,
 		Code:    http.StatusInternalServerError,
 		Data:    fmt.Sprintf("%v", err),
 	}
-	_ = helper.WriteToResponseBody(c, http.StatusInternalServerError, webResponse)
+	_ = helpers.WriteToResponseBody(c, http.StatusInternalServerError, webResponse)
 }

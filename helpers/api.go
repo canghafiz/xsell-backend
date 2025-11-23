@@ -1,4 +1,4 @@
-package helper
+package helpers
 
 type ApiResponse struct {
 	Success bool        `json:"success"`

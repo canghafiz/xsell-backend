@@ -1,20 +1,32 @@
-package app
+package apps
 
 import (
+	"be/dependencies"
 	"be/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Router struct {
-	// Member
-	MemberDependency *MemberDependency
+	AdminDependency  *dependencies.AdminDependency
+	MemberDependency *dependencies.MemberDependency
 
 	JwtKey string
 	Engine *gin.Engine
 }
 
 func NewRouter(r Router) *Router {
+	// Admin
+	adminGroup := r.Engine.Group("api/v1/admin")
+	{
+		categoryGroup := adminGroup.Group("/category")
+		{
+			categoryGroup.POST("/", r.AdminDependency.CategoryCont.Create)
+			categoryGroup.PUT("/:categoryId", r.AdminDependency.CategoryCont.Update)
+			categoryGroup.DELETE("/:categoryId", r.AdminDependency.CategoryCont.Delete)
+		}
+	}
+
 	// Member Route
 	memberGroup := r.Engine.Group("api/v1/member")
 	{
@@ -32,6 +44,7 @@ func NewRouter(r Router) *Router {
 	}
 
 	return &Router{
+		AdminDependency:  r.AdminDependency,
 		MemberDependency: r.MemberDependency,
 
 		JwtKey: r.JwtKey,

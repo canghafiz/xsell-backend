@@ -1,7 +1,7 @@
 package impl
 
 import (
-	"be/helper"
+	"be/helpers"
 	"be/models/domains"
 	"be/models/repositories"
 	"be/models/requests/user"
@@ -26,7 +26,7 @@ func NewUserServMemberImpl(userRepo repositories.UserRepo, DB *gorm.DB, validato
 }
 
 func (serv *UserServMemberImpl) Register(request user.RegisterRequest) error {
-	errValidator := helper.ErrValidator(request, serv.Validator)
+	errValidator := helpers.ErrValidator(request, serv.Validator)
 	if errValidator != nil {
 		return errValidator
 	}
@@ -53,7 +53,7 @@ func (serv *UserServMemberImpl) Register(request user.RegisterRequest) error {
 }
 
 func (serv *UserServMemberImpl) Login(request user.LoginRequest) (*string, error) {
-	errValidator := helper.ErrValidator(request, serv.Validator)
+	errValidator := helpers.ErrValidator(request, serv.Validator)
 	if errValidator != nil {
 		return nil, errValidator
 	}
@@ -84,7 +84,7 @@ func (serv *UserServMemberImpl) Login(request user.LoginRequest) (*string, error
 
 	// Create JWT Token
 	duration := time.Hour * 24
-	jwt, errJwt := helper.GenerateJWT(serv.JwtKey, duration, &resource)
+	jwt, errJwt := helpers.GenerateJWT(serv.JwtKey, duration, &resource)
 	if errJwt != nil {
 		log.Printf("[GenerateJWT] error: %v", errJwt)
 		return nil, fmt.Errorf("failed to login, please try again later")
@@ -116,7 +116,7 @@ func (serv *UserServMemberImpl) Logout(email string) error {
 }
 
 func (serv *UserServMemberImpl) UpdateData(request user.UpdateDataRequest) (*user2.SingleResource, error) {
-	errValidator := helper.ErrValidator(request, serv.Validator)
+	errValidator := helpers.ErrValidator(request, serv.Validator)
 	if errValidator != nil {
 		return nil, errValidator
 	}

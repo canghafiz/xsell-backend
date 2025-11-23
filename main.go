@@ -1,8 +1,9 @@
 package main
 
 import (
-	"be/app"
-	"be/helper"
+	"be/apps"
+	"be/dependencies"
+	"be/helpers"
 	"os"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 func main() {
 	// Load .env file
 	err := godotenv.Load(".env")
-	helper.FatalError(err)
+	helpers.FatalError(err)
 
 	if os.Getenv("APP_STATUS") == "Debug" {
 		gin.SetMode(gin.DebugMode)
@@ -35,13 +36,14 @@ func main() {
 	dbUser := os.Getenv("DB_USER")
 	dbPass := os.Getenv("DB_PASS")
 	dbName := os.Getenv("DB_NAME")
-	db := app.OpenConnection(dbUser, dbPass, dbHost, dbPort, dbName)
+	db := apps.OpenConnection(dbUser, dbPass, dbHost, dbPort, dbName)
 
 	// Other
 	validate := validator.New()
 
 	// Dependency
-	memberDependency := app.NewMemberDependency(db, validate, jwtKey)
+	memberDependency := dependencies.NewMemberDependency(db, validate, jwtKey)
+	adminDependency := dependencies.NewAdminDependency(db, validate)
 
 	// Setup Router
 	engine := gin.Default()
@@ -52,18 +54,19 @@ func main() {
 		ExposeHeaders: []string{"Content-Length"},
 		MaxAge:        12 * time.Hour,
 	}))
-	routerParent := app.Router{
+	routerParent := apps.Router{
 		MemberDependency: memberDependency,
+		AdminDependency:  adminDependency,
 
 		JwtKey: jwtKey,
 		Engine: engine,
 	}
-	router := app.NewRouter(routerParent)
+	router := apps.NewRouter(routerParent)
 
 	// Run Server
 	if port == "" {
 		port = ":3001"
 	}
 	err = router.Engine.Run(port)
-	helper.FatalError(err)
+	helpers.FatalError(err)
 }

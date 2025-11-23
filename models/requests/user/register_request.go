@@ -1,7 +1,7 @@
 package user
 
 import (
-	"be/helper"
+	"be/helpers"
 	"be/models/domains"
 )
 
@@ -17,6 +17,6 @@ func RegisterRequestToDomain(request RegisterRequest) domains.Users {
 		FirstName: request.FirstName,
 		LastName:  request.LastName,
 		Email:     request.Email,
-		Password:  helper.HashedPassword(request.Password),
+		Password:  helpers.HashedPassword(request.Password),
 	}
 }
