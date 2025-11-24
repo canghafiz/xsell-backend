@@ -27,7 +27,7 @@ const (
 	LikeNew    ProductCondition = "Like New"
 	Good       ProductCondition = "Good"
 	GoodQuite  ProductCondition = "Good Quite"
-	NeedRepair ProductCondition = "NeedRepair"
+	NeedRepair ProductCondition = "Needs Repair"
 )
 
 type ProductStatus string

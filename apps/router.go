@@ -16,6 +16,8 @@ type Router struct {
 }
 
 func NewRouter(r Router) *Router {
+	authMiddleware := middlewares.AuthMiddleware(r.MemberDependency.Db, r.MemberDependency.UserRepo, r.JwtKey)
+
 	// Admin
 	adminGroup := r.Engine.Group("api/v1/admin")
 	{
@@ -35,10 +37,21 @@ func NewRouter(r Router) *Router {
 			userGroup.POST("/register", r.MemberDependency.UserCont.Register)
 			userGroup.POST("/login", r.MemberDependency.UserCont.Login)
 
-			authMiddleware := userGroup.Use(middlewares.AuthMiddleware(r.MemberDependency.Db, r.MemberDependency.UserRepo, r.JwtKey))
+			authMiddleware := userGroup.Use(authMiddleware)
 			{
 				authMiddleware.PUT("/:userId", r.MemberDependency.UserCont.UpdateData)
 				authMiddleware.DELETE("/logout/:email", r.MemberDependency.UserCont.Logout)
+			}
+		}
+
+		productGroup := memberGroup.Group("/product")
+		{
+			productGroup.GET("/:productSlug", r.MemberDependency.ProductCont.GetSingleBySlug)
+
+			authMiddleware := productGroup.Use(authMiddleware)
+			{
+				authMiddleware.POST("/", r.MemberDependency.ProductCont.Create)
+				authMiddleware.PUT("/:productId", r.MemberDependency.ProductCont.Update)
 			}
 		}
 	}
