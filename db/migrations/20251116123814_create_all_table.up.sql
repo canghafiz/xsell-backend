@@ -115,6 +115,9 @@ CREATE TABLE ProductSpecs (
                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                               updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE ProductSpecs
+    ADD CONSTRAINT uk_product_specs_product_id_spec_id
+        UNIQUE (product_id, category_product_spec_id);
 
 -- Create ProductImages table
 CREATE TABLE ProductImages (
