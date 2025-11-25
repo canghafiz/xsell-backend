@@ -169,7 +169,7 @@ paths:
     delete:
       tags:
         - "Authentication"
-      summary: "Endpoint for register"
+      summary: "Endpoint for logout"
       parameters:
         - in: header
           name: Authorization
@@ -185,7 +185,7 @@ paths:
           example: "user@example.com"
       responses:
         200:
-          description: "registrasi berhasil"
+          description: "logout berhasil"
           schema:
             $ref: "#/definitions/logoutResponse"
 
