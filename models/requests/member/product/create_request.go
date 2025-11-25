@@ -6,8 +6,8 @@ type CreateProductRequest struct {
 	Title         string                   `json:"title" validate:"required,min=3,max=100"`
 	Description   string                   `json:"description" validate:"required,min=10,max=5000"`
 	Price         float64                  `json:"price" validate:"required,gt=0,lte=999999999"`
-	Condition     domains.ProductCondition `json:"condition" validate:"required,oneof=New Like\x20New Good Good\x20Quite Needs\x20Repair"`
-	Status        domains.ProductStatus    `json:"status" validate:"required,oneof=Available Sold\x20out"`
+	Condition     domains.ProductCondition `json:"condition" validate:"required,oneof=New 'Like New' Good 'Good Quite' 'Needs Repair'"`
+	Status        domains.ProductStatus    `json:"status" validate:"required,oneof=Available 'Sold out'"`
 	CategoryID    int                      `json:"category_id" validate:"required,gt=0"`
 	ListingUserId int                      `json:"listing_user_id" validate:"required,gt=0"`
 	Images        []ImageRequest           `json:"images,omitempty"`

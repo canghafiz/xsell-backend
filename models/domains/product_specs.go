@@ -8,7 +8,7 @@ type ProductSpecs struct {
 	ProductId             int                  `gorm:"column:product_id"`
 	SpecValue             string               `gorm:"column:spec_value"`
 	CreatedAt             time.Time            `gorm:"column:created_at"`
-	UpdatedAt             time.Time            `gorm:"column:update_at"`
+	UpdatedAt             time.Time            `gorm:"column:updated_at"`
 	CategoryProductSpec   CategoryProductSpecs `gorm:"foreignKey:category_product_spec_id;references:category_product_spec_id"`
 }
 

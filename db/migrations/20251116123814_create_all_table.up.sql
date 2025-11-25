@@ -1,4 +1,3 @@
--- PostgresSQL Database Schema
 -- Drop existing types if they exist
 DROP TYPE IF EXISTS Role CASCADE;
 DROP TYPE IF EXISTS ProductCondition CASCADE;
@@ -44,7 +43,7 @@ CREATE TABLE Users (
                        token TEXT,
                        token_expire TIMESTAMP,
                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                       update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create UserVerified table
@@ -54,7 +53,7 @@ CREATE TABLE UserVerified (
                               phoneNumber VARCHAR(25),
                               verified BOOLEAN DEFAULT FALSE,
                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                              update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create Categories table
@@ -65,23 +64,23 @@ CREATE TABLE Categories (
                             description TEXT,
                             icon VARCHAR(255),
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create Products table
 CREATE TABLE Products (
                           product_id SERIAL PRIMARY KEY,
-                          listing_user_id INTEGER REFERENCES Users(user_id) ON DELETE SET NULL,
-                          category_id INTEGER NOT NULL REFERENCES Categories(category_id) ON DELETE RESTRICT,
-                          product_slug VARCHAR(50) NOT NULL UNIQUE,
+                          listing_user_id INTEGER REFERENCES users(user_id) ON DELETE SET NULL,
+                          category_id INTEGER NOT NULL REFERENCES categories(category_id) ON DELETE RESTRICT,
+                          product_slug VARCHAR(100) NOT NULL UNIQUE,
                           title VARCHAR(255) NOT NULL,
                           description TEXT NOT NULL,
-                          price DECIMAL(12,2) DEFAULT 0,
-                          condition ProductCondition DEFAULT 'Like New',
-                          status ProductStatus DEFAULT 'Available',
-                          view_count INTEGER DEFAULT 0,
-                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                          update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                          price DECIMAL(12,2) NOT NULL DEFAULT 0.00 CHECK (price >= 0),
+                          condition ProductCondition NOT NULL DEFAULT 'Like New',
+                          status ProductStatus NOT NULL DEFAULT 'Available',
+                          view_count INTEGER NOT NULL DEFAULT 0,
+                          created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                          updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create Location table
@@ -92,18 +91,19 @@ CREATE TABLE Location (
                           latitude DECIMAL(10,7),
                           longitude DECIMAL(10,7),
                           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                          update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create CategoryProductSpecs table
+-- CategoryProductSpecs
 CREATE TABLE CategoryProductSpecs (
                                       category_product_spec_id SERIAL PRIMARY KEY,
                                       category_id INTEGER NOT NULL REFERENCES Categories(category_id) ON DELETE CASCADE,
                                       is_main_spec BOOLEAN DEFAULT FALSE,
                                       spec_type_title VARCHAR(100) NOT NULL,
-                                      spec_name VARCHAR(100) NOT NULL UNIQUE,
+                                      spec_name VARCHAR(100) NOT NULL,
                                       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                      update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                                      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                      UNIQUE (category_id, spec_name)
 );
 
 -- Create ProductSpecs table
@@ -113,7 +113,7 @@ CREATE TABLE ProductSpecs (
                               product_id INTEGER REFERENCES Products(product_id) ON DELETE CASCADE,
                               spec_value VARCHAR(100) NOT NULL,
                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                              update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create ProductImages table
@@ -124,7 +124,7 @@ CREATE TABLE ProductImages (
                                is_primary BOOLEAN DEFAULT FALSE,
                                order_sequence INTEGER DEFAULT 0,
                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                               update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                               updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create Wishlists table
@@ -133,7 +133,8 @@ CREATE TABLE Wishlists (
                            user_id INTEGER REFERENCES Users(user_id) ON DELETE CASCADE,
                            product_id INTEGER REFERENCES Products(product_id) ON DELETE CASCADE,
                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                           update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                           UNIQUE (user_id, product_id)
 );
 
 -- Create Bookings table
@@ -145,7 +146,7 @@ CREATE TABLE Bookings (
                           total_amount DECIMAL(12,2) NOT NULL,
                           book_status BookingStatus DEFAULT 'Pending',
                           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                          update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create Payments table
@@ -159,7 +160,7 @@ CREATE TABLE Payments (
                           payment_date TIMESTAMP,
                           payment_proof TEXT,
                           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                          update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create UserBalances table
@@ -168,7 +169,7 @@ CREATE TABLE UserBalances (
                               user_id INTEGER REFERENCES Users(user_id) ON DELETE CASCADE,
                               amount DECIMAL(12,2) NOT NULL,
                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                              update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create UserBalanceHistory table
@@ -200,7 +201,7 @@ CREATE TABLE Banners (
                          title VARCHAR(100),
                          description VARCHAR(255),
                          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                         update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes for better performance

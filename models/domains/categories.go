@@ -14,7 +14,7 @@ type Categories struct {
 	Description  string    `gorm:"column:description"`
 	Icon         string    `gorm:"column:icon"`
 	CreatedAt    time.Time `gorm:"column:created_at"`
-	UpdatedAt    time.Time `gorm:"column:update_at"`
+	UpdatedAt    time.Time `gorm:"column:updated_at"`
 }
 
 func (c *Categories) BeforeCreate(tx *gorm.DB) error {

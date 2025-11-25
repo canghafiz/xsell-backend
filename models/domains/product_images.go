@@ -9,7 +9,7 @@ type ProductImages struct {
 	IsPrimary     bool      `gorm:"column:is_primary"`
 	OrderSequence int       `gorm:"column:order_sequence"`
 	CreatedAt     time.Time `gorm:"column:created_at"`
-	UpdatedAt     time.Time `gorm:"column:update_at"`
+	UpdatedAt     time.Time `gorm:"column:updated_at"`
 }
 
 func (ProductImages) TableName() string {

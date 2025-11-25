@@ -7,8 +7,8 @@ type UpdateProductRequest struct {
 	Title       *string                   `json:"title,omitempty"`
 	Description *string                   `json:"description,omitempty"`
 	Price       *float64                  `json:"price,omitempty"`
-	Condition   *domains.ProductCondition `json:"condition,omitempty"`
-	Status      *domains.ProductStatus    `json:"status,omitempty"`
+	Condition   *domains.ProductCondition `json:"condition" validate:"required,oneof=New 'Like New' Good 'Good Quite' 'Needs Repair'"`
+	Status      *domains.ProductStatus    `json:"status" validate:"required,oneof=Available 'Sold out'"`
 	CategoryID  *int                      `json:"category_id,omitempty"`
 	Images      *[]ImageRequest           `json:"images,omitempty"`
 	Specs       *[]SpecRequest            `json:"specs,omitempty"`
