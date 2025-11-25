@@ -6,4 +6,5 @@ type ProductContMember interface {
 	Create(context *gin.Context)
 	Update(context *gin.Context)
 	GetSingleBySlug(context *gin.Context)
+	Delete(context *gin.Context)
 }

@@ -9,4 +9,5 @@ type ProductServMember interface {
 	Create(request product.CreateProductRequest) error
 	Update(request product.UpdateProductRequest) error
 	GetSingleBySlug(productSlug string) (*res.SingleProductResource, error)
+	Delete(productId int) error
 }

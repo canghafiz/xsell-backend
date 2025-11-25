@@ -52,6 +52,7 @@ func NewRouter(r Router) *Router {
 			{
 				authMiddleware.POST("/", r.MemberDependency.ProductCont.Create)
 				authMiddleware.PUT("/:productId", r.MemberDependency.ProductCont.Update)
+				authMiddleware.DELETE("/:productId", r.MemberDependency.ProductCont.Delete)
 			}
 		}
 	}

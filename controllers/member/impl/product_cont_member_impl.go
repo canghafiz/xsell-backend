@@ -106,3 +106,28 @@ func (cont *ProductContMemberImpl) GetSingleBySlug(context *gin.Context) {
 		return
 	}
 }
+
+func (cont *ProductContMemberImpl) Delete(context *gin.Context) {
+	productIdStr := context.Param("productId")
+	productId, _ := strconv.Atoi(productIdStr)
+
+	// Call Service
+	errServ := cont.ProductServ.Delete(productId)
+	if errServ != nil {
+		exceptions.ErrorHandler(context, errServ)
+		return
+	}
+
+	// Response
+	response := helpers.ApiResponse{
+		Success: true,
+		Code:    200,
+		Data:    nil,
+	}
+
+	errResponse := helpers.WriteToResponseBody(context, response.Code, response)
+	if errResponse != nil {
+		exceptions.ErrorHandler(context, errResponse)
+		return
+	}
+}

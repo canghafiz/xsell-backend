@@ -12,6 +12,7 @@ type UpdateProductRequest struct {
 	CategoryID  *int                      `json:"category_id,omitempty"`
 	Images      *[]ImageRequest           `json:"images,omitempty"`
 	Specs       *[]SpecRequest            `json:"specs,omitempty"`
+	Location    *LocationRequest          `json:"location,omitempty"`
 }
 
 func UpdateProductRequestToDomain(request UpdateProductRequest) *domains.Products {
@@ -25,5 +26,6 @@ func UpdateProductRequestToDomain(request UpdateProductRequest) *domains.Product
 		CategoryId:    *request.CategoryID,
 		ProductImages: ImageRequestToDomains(*request.Images),
 		ProductSpecs:  SpecRequestToDomains(*request.Specs),
+		Location:      LocationRequestToDomain(*request.Location),
 	}
 }

@@ -24,6 +24,7 @@ type Products struct {
 	ProductCategories []Categories     `gorm:"foreignKey:category_id;references:category_id"`
 	ProductImages     []ProductImages  `gorm:"foreignKey:product_id;references:product_id"`
 	ProductSpecs      []ProductSpecs   `gorm:"foreignKey:product_id;references:product_id"`
+	Location          Location         `gorm:"foreignKey:product_id;references:product_id"`
 }
 
 func (p *Products) BeforeCreate(tx *gorm.DB) error {

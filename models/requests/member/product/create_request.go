@@ -12,6 +12,7 @@ type CreateProductRequest struct {
 	ListingUserId int                      `json:"listing_user_id" validate:"required,gt=0"`
 	Images        []ImageRequest           `json:"images,omitempty"`
 	Specs         []SpecRequest            `json:"specs,omitempty"`
+	Location      LocationRequest          `json:"location"`
 }
 
 func CreateProductRequestToDomain(request CreateProductRequest) *domains.Products {
@@ -25,5 +26,6 @@ func CreateProductRequestToDomain(request CreateProductRequest) *domains.Product
 		ListingUserId: request.ListingUserId,
 		ProductImages: ImageRequestToDomains(request.Images),
 		ProductSpecs:  SpecRequestToDomains(request.Specs),
+		Location:      LocationRequestToDomain(request.Location),
 	}
 }

@@ -2,6 +2,7 @@ package impl
 
 import (
 	"be/helpers"
+	"be/models/domains"
 	"be/models/repositories/member"
 	"be/models/requests/member/product"
 	res "be/models/resources/product"
@@ -67,4 +68,17 @@ func (serv *ProductServMemberImpl) GetSingleBySlug(productSlug string) (*res.Sin
 	}
 
 	return res.ToSingleProductResource(result), nil
+}
+
+func (serv *ProductServMemberImpl) Delete(productId int) error {
+	// Call repo
+	err := serv.ProductRepo.Delete(serv.Db, domains.Products{
+		ProductId: productId,
+	})
+	if err != nil {
+		log.Printf("[ProductRepoMember.Delete] error: %v", err)
+		return fmt.Errorf("failed to delete by product id, please try again later")
+	}
+
+	return nil
 }
