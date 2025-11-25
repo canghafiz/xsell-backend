@@ -17,6 +17,7 @@ type SingleProductResource struct {
 	Category    *CategoryResource `json:"category,omitempty"`
 	Images      []ImageResource   `json:"images"`
 	Specs       []SpecResource    `json:"specs"`
+	Location    LocationResource  `json:"location"`
 	CreatedAt   string            `json:"created_at"`
 	UpdatedAt   string            `json:"updated_at"`
 }
@@ -39,6 +40,11 @@ type SpecResource struct {
 	Category string `json:"category,omitempty"` // dari CategoryProductSpec
 }
 
+type LocationResource struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
 func ToSingleProductResource(product *domains.Products) *SingleProductResource {
 	if product == nil {
 		return nil
@@ -53,8 +59,12 @@ func ToSingleProductResource(product *domains.Products) *SingleProductResource {
 		Condition:   string(product.Condition),
 		Status:      string(product.Status),
 		ViewCount:   product.ViewCount,
-		CreatedAt:   product.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:   product.UpdatedAt.Format(time.RFC3339),
+		Location: LocationResource{
+			Latitude:  product.Location.Latitude,
+			Longitude: product.Location.Longitude,
+		},
+		CreatedAt: product.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: product.UpdatedAt.Format(time.RFC3339),
 	}
 
 	if len(product.ProductCategories) > 0 {

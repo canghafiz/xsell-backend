@@ -163,6 +163,7 @@ func (repo *ProductRepoMemberImpl) GetSingleBySlug(db *gorm.DB, slug string) (*d
 	err := db.Preload("ProductCategories").
 		Preload("ProductImages").
 		Preload("ProductSpecs.CategoryProductSpec").
+		Preload("Location").
 		Where("product_slug = ?", slug).
 		First(&product).Error
 
