@@ -21,11 +21,8 @@ VALUES
 -- Fashion
 ('fashion_items', 'Fashion & Accessories', 'Clothing, shoes, bags, and watches', 'dynamic', '{"filters": {"category_slug": "fashion", "status": "Available"}, "limit": 8}'::JSONB, true, 7),
 
--- Trusted sellers (optional)
-('trusted_sellers', 'From Trusted Sellers', 'Highly rated sellers', 'predefined', '{"strategy": "trusted_sellers", "limit": 8}'::JSONB, true, 8),
-
--- Editor's picks (manual curation)
-('editor_pick', 'Editor''s Picks', 'Handpicked just for you', 'fixed', '{"product_ids": []}'::JSONB, true, 9);
+-- Editor (manual)
+('editor_pick', 'Editor''s Picks', 'Handpicked just for you', 'fixed', '{"product_ids": []}'::JSONB, true, 8);
 
 -- ==========================================================
 -- SEED DATA: page_layouts

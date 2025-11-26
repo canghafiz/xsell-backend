@@ -29,8 +29,10 @@ type CategoryResource struct {
 }
 
 type ImageResource struct {
-	ImageId int    `json:"image_id"`
-	URL     string `json:"url"`
+	ImageId   int    `json:"image_id"`
+	URL       string `json:"url"`
+	IsPrimary bool   `json:"is_primary"`
+	OrderSeq  int    `json:"order_seq"`
 }
 
 type SpecResource struct {
@@ -79,8 +81,10 @@ func ToSingleProductResource(product *domains.Products) *SingleProductResource {
 	// Images
 	for _, img := range product.ProductImages {
 		res.Images = append(res.Images, ImageResource{
-			ImageId: img.ImageId,
-			URL:     img.ImageUrl,
+			ImageId:   img.ImageId,
+			URL:       img.ImageUrl,
+			OrderSeq:  img.OrderSequence,
+			IsPrimary: img.IsPrimary,
 		})
 	}
 
