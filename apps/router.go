@@ -55,6 +55,12 @@ func NewRouter(r Router) *Router {
 				authMiddleware.DELETE("/:productId", r.MemberDependency.ProductCont.Delete)
 			}
 		}
+
+		pageGroup := memberGroup.Group("/page")
+		{
+			pageGroup.GET("/home", r.MemberDependency.PageLayoutCont.GetHomeLayouts)
+			pageGroup.GET("/detail", r.MemberDependency.PageLayoutCont.GetProductDetailLayouts)
+		}
 	}
 
 	return &Router{

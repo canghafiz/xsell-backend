@@ -1,10 +1,14 @@
 package impl
 
 import (
+	"be/helpers"
 	"be/models/domains"
 	"be/models/repositories"
 	"be/models/resources"
+	"be/models/resources/section"
 	"be/models/services"
+	"fmt"
+	"log"
 
 	"gorm.io/gorm"
 )
@@ -20,13 +24,63 @@ func NewPageLayoutServMemberImpl(db *gorm.DB, redisServ services.RedisService, p
 }
 
 func (serv *PageLayoutServMemberImpl) GetHomeLayouts(overrideLimit int) (resources.PageResource, error) {
-	//TODO implement me
-	panic("implement me")
+	return serv.getPageLayout("home", overrideLimit)
 }
 
 func (serv *PageLayoutServMemberImpl) GetProductDetailLayouts(overrideLimit int) (resources.PageResource, error) {
-	//TODO implement me
-	panic("implement me")
+	return serv.getPageLayout("product_detail", overrideLimit)
+}
+
+func (serv *PageLayoutServMemberImpl) getPageLayout(pageKey string, overrideLimit int) (resources.PageResource, error) {
+	cacheKey := fmt.Sprintf("page:%v:layout:limit:%d", pageKey, overrideLimit)
+
+	// Get from cache
+	var results resources.PageResource
+	cachedResult, err := helpers.GetFromCache(serv.RedisServ.GetData, cacheKey, &results)
+	if err == nil && cachedResult != nil {
+		if result, ok := cachedResult.(*resources.PageResource); ok {
+			log.Printf("Successfully get page layout form key %s.", cacheKey)
+			return *result, nil
+		}
+	}
+
+	// Get from repo
+	layouts, errLayout := serv.PageLayoutRepo.GetPageLayout(serv.Db, pageKey)
+	if errLayout != nil {
+		log.Printf("[PageLayoutRepo.GetPageLayout] error: %v", errLayout)
+		return resources.PageResource{
+			PageKey: pageKey,
+			Data:    nil,
+		}, fmt.Errorf("user not found")
+	}
+
+	var sections []section.Resource
+	for _, layout := range layouts {
+		if layout.Section == nil {
+			continue
+		}
+
+		products, err := serv.getProductsByConfig(layout.Section.Config, overrideLimit)
+		if err != nil {
+			continue
+		}
+
+		sections = append(sections, *section.ToResource(*layout.Section, products))
+	}
+
+	// Set to cache
+	if errCache := helpers.SetToCache(serv.RedisServ.SetData, cacheKey, layouts, 1440); errCache != nil {
+		log.Printf("Failed to set cache for key %s: %v", cacheKey, errCache)
+		return resources.PageResource{
+			PageKey: pageKey,
+			Data:    nil,
+		}, fmt.Errorf("get page layout failed, please try again later")
+	}
+
+	return resources.PageResource{
+		PageKey: pageKey,
+		Data:    sections,
+	}, nil
 }
 
 func (serv *PageLayoutServMemberImpl) getProductsByConfig(config domains.ContentConfig, overrideLimit int) ([]domains.Products, error) {

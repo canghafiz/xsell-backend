@@ -16,7 +16,13 @@ type RedisServiceImpl struct {
 	config domains.RedisConfig
 }
 
-func NewRedisServiceImpl(rdb *redis.Client, config domains.RedisConfig) *RedisServiceImpl {
+func NewRedisServiceImpl(config domains.RedisConfig) *RedisServiceImpl {
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     config.Addr,
+		Password: config.Password,
+		DB:       config.DB,
+	})
+
 	return &RedisServiceImpl{rdb: rdb, config: config}
 }
 

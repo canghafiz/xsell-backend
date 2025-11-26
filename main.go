@@ -4,7 +4,9 @@ import (
 	"be/apps"
 	"be/dependencies"
 	"be/helpers"
+	"be/models/domains"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -38,11 +40,20 @@ func main() {
 	dbName := os.Getenv("DB_NAME")
 	db := apps.OpenConnection(dbUser, dbPass, dbHost, dbPort, dbName)
 
+	// Redis Config
+	redisDb, _ := strconv.Atoi(os.Getenv("REDIS_DB"))
+	redisConfig := domains.RedisConfig{
+		Prefix:   os.Getenv("REDIS_PREFIX"),
+		Addr:     os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT"),
+		DB:       redisDb,
+		Password: os.Getenv("REDIS_PASS"),
+	}
+
 	// Other
 	validate := validator.New()
 
 	// Dependency
-	memberDependency := dependencies.NewMemberDependency(db, validate, jwtKey)
+	memberDependency := dependencies.NewMemberDependency(db, validate, redisConfig, jwtKey)
 	adminDependency := dependencies.NewAdminDependency(db, validate)
 
 	// Setup Router

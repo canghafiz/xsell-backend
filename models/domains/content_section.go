@@ -1,6 +1,11 @@
 package domains
 
-import "time"
+import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"time"
+)
 
 type ContentSection struct {
 	SectionID   int           `gorm:"primaryKey;column:section_id;autoIncrement"`
@@ -20,6 +25,22 @@ type ContentConfig struct {
 	Filters    map[string]interface{} `json:"filters,omitempty"`
 	ProductIDs []int                  `json:"product_ids,omitempty"`
 	Strategy   string                 `json:"strategy,omitempty"`
+}
+
+// Value implements driver.Valuer for JSONB storage
+func (c ContentConfig) Value() (driver.Value, error) {
+	return json.Marshal(c)
+}
+
+func (c *ContentConfig) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("failed to scan JSONB value")
+	}
+	return json.Unmarshal(bytes, c)
 }
 
 func (ContentSection) TableName() string {
