@@ -18,11 +18,38 @@ func NewPageLayoutContMemberImpl(pageLayoutServ member.PageLayoutServMember) *Pa
 }
 
 func (cont *PageLayoutContMemberImpl) GetHomeLayouts(context *gin.Context) {
-	limitStr := context.DefaultQuery("limit", "10")
-	limit, _ := strconv.Atoi(limitStr)
+	validSections := map[string]bool{
+		"newly_listed":     true,
+		"trending":         true,
+		"like_new_items":   true,
+		"good_condition":   true,
+		"used_electronics": true,
+		"home_items":       true,
+		"fashion_items":    true,
+		"editor_pick":      true,
+	}
 
-	// Call Service
-	result, errServ := cont.PageLayoutServ.GetHomeLayouts(limit)
+	sectionLimits := make(map[string]int)
+	
+	for key, values := range context.Request.URL.Query() {
+		if !validSections[key] {
+			continue
+		}
+
+		if len(values) == 0 {
+			continue
+		}
+
+		limit, err := strconv.Atoi(values[0])
+		if err != nil || limit <= 0 {
+			continue
+		}
+
+		sectionLimits[key] = limit
+	}
+
+	// Call Serv
+	result, errServ := cont.PageLayoutServ.GetHomeLayouts(sectionLimits)
 	if errServ != nil {
 		exceptions.ErrorHandler(context, errServ)
 		return
@@ -43,11 +70,32 @@ func (cont *PageLayoutContMemberImpl) GetHomeLayouts(context *gin.Context) {
 }
 
 func (cont *PageLayoutContMemberImpl) GetProductDetailLayouts(context *gin.Context) {
-	limitStr := context.DefaultQuery("limit", "10")
-	limit, _ := strconv.Atoi(limitStr)
+	validSections := map[string]bool{
+		"trending":       true,
+		"like_new_items": true,
+	}
 
-	// Call Service
-	result, errServ := cont.PageLayoutServ.GetHomeLayouts(limit)
+	sectionLimits := make(map[string]int)
+
+	for key, values := range context.Request.URL.Query() {
+		if !validSections[key] {
+			continue
+		}
+
+		if len(values) == 0 {
+			continue
+		}
+
+		limit, err := strconv.Atoi(values[0])
+		if err != nil || limit <= 0 {
+			continue
+		}
+
+		sectionLimits[key] = limit
+	}
+
+	// Call Serv
+	result, errServ := cont.PageLayoutServ.GetProductDetailLayouts(sectionLimits)
 	if errServ != nil {
 		exceptions.ErrorHandler(context, errServ)
 		return

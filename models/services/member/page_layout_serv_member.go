@@ -3,6 +3,6 @@ package member
 import "be/models/resources"
 
 type PageLayoutServMember interface {
-	GetHomeLayouts(overrideLimit int) (resources.PageResource, error)
-	GetProductDetailLayouts(overrideLimit int) (resources.PageResource, error)
+	GetHomeLayouts(sectionLimits map[string]int) (resources.PageResource, error)
+	GetProductDetailLayouts(sectionLimits map[string]int) (resources.PageResource, error)
 }
