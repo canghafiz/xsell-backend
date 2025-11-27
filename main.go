@@ -55,6 +55,7 @@ func main() {
 	// Dependency
 	memberDependency := dependencies.NewMemberDependency(db, validate, redisConfig, jwtKey)
 	adminDependency := dependencies.NewAdminDependency(db, validate)
+	dependency := dependencies.NewDependency()
 
 	// Setup Router
 	engine := gin.Default()
@@ -68,6 +69,7 @@ func main() {
 	routerParent := apps.Router{
 		MemberDependency: memberDependency,
 		AdminDependency:  adminDependency,
+		Dependency:       dependency,
 
 		JwtKey: jwtKey,
 		Engine: engine,
