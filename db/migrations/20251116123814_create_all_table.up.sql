@@ -86,7 +86,7 @@ CREATE TABLE Products (
 -- Create Location table
 CREATE TABLE Location (
                           location_id SERIAL PRIMARY KEY,
-                          user_id INTEGER UNIQUE REFERENCES Users(user_id) ON DELETE CASCADE,
+                          user_id INTEGER REFERENCES Users(user_id) ON DELETE CASCADE,
                           product_id INTEGER REFERENCES Products(product_id) ON DELETE CASCADE,
                           latitude DECIMAL(10,7),
                           longitude DECIMAL(10,7),
