@@ -15,7 +15,7 @@ func AuthMiddleware(db *gorm.DB, userRepo repositories.UserRepo, jwtKey string) 
 	return func(c *gin.Context) {
 		header := c.Request.Header.Get("Authorization")
 
-		// 1. Check Auth Exists
+		// Check Auth Exists
 		if header == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"message": "Authorization header required",
@@ -23,7 +23,7 @@ func AuthMiddleware(db *gorm.DB, userRepo repositories.UserRepo, jwtKey string) 
 			return
 		}
 
-		// 2. Check Format Bearer
+		// Check Format Bearer
 		if !strings.HasPrefix(header, "Bearer ") {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"message": "Invalid authorization format",
@@ -31,7 +31,7 @@ func AuthMiddleware(db *gorm.DB, userRepo repositories.UserRepo, jwtKey string) 
 			return
 		}
 
-		// 3. Extract token from header
+		// Extract token from header
 		tokenString := strings.TrimPrefix(header, "Bearer ")
 		if tokenString == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
@@ -40,7 +40,7 @@ func AuthMiddleware(db *gorm.DB, userRepo repositories.UserRepo, jwtKey string) 
 			return
 		}
 
-		// 4. Decode Token
+		// Decode Token
 		result, errDecode := helpers.DecodeJWT(tokenString, jwtKey)
 		if errDecode != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
@@ -49,7 +49,7 @@ func AuthMiddleware(db *gorm.DB, userRepo repositories.UserRepo, jwtKey string) 
 			return
 		}
 
-		// 5. Extract email with type safety
+		// Extract email with type safety
 		email, ok := result["email"].(string)
 		if !ok || email == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
@@ -58,7 +58,16 @@ func AuthMiddleware(db *gorm.DB, userRepo repositories.UserRepo, jwtKey string) 
 			return
 		}
 
-		// 6. Check Token in DB
+		// Extract phone number verified status
+		phoneNumVerified, okVer := result["phonenumber_verified"].(bool)
+		if !okVer || phoneNumVerified == false {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"message": "Phone number verified is required",
+			})
+			return
+		}
+
+		// Check Token in DB
 		tokenModel := domains.Users{
 			Email: email,
 			Token: &tokenString,
@@ -71,7 +80,7 @@ func AuthMiddleware(db *gorm.DB, userRepo repositories.UserRepo, jwtKey string) 
 			return
 		}
 
-		// 7. Set user data to context
+		// Set user data to context
 		c.Set("user_email", email)
 		if userID, exists := result["user_id"]; exists {
 			c.Set("user_id", userID)

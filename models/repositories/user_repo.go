@@ -12,6 +12,7 @@ type UserRepo interface {
 	CheckTokenValid(db *gorm.DB, user domains.Users) bool
 	Update(db *gorm.DB, user domains.Users) (*domains.Users, error)
 	FindByEmail(db *gorm.DB, email string) (*domains.Users, error)
+	FindByPhoneNumber(db *gorm.DB, phone string) (*domains.Users, error)
 	CheckPasswordValid(db *gorm.DB, user domains.Users) (bool, error)
 	ResetToken(db *gorm.DB, email string) error
 }

@@ -37,6 +37,12 @@ func (serv *UserServMemberImpl) Register(request user.RegisterRequest) error {
 		return fmt.Errorf("user already exists")
 	}
 
+	// Find user by phone number verified
+	phoneNumber, _ := serv.UserRepo.FindByPhoneNumber(serv.DB, request.PhoneNumber)
+	if phoneNumber != nil {
+		return fmt.Errorf("phone number already used")
+	}
+
 	// Define model
 	model := user.RegisterRequestToDomain(request)
 	model.Role = domains.RoleMember
@@ -63,6 +69,11 @@ func (serv *UserServMemberImpl) Login(request user.LoginRequest) (*string, error
 	if findUser == nil || errFindUser != nil {
 		log.Printf("[UserRepo.FindByEmail] error: %v", errFindUser)
 		return nil, fmt.Errorf("user not found")
+	}
+
+	// Check user phone number is verified
+	if !findUser.Verified.Verified {
+		return nil, fmt.Errorf("your phone number is not verified")
 	}
 
 	// Define model

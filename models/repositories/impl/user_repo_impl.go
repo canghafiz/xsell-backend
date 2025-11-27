@@ -88,10 +88,27 @@ func (repo *UserRepoImpl) FindByEmail(db *gorm.DB, email string) (*domains.Users
 	result := db.
 		Model(&user).
 		Where("email = ?", email).
+		Preload("Verified").
 		First(&user)
 
 	if result.Error != nil {
 		return nil, result.Error
+	}
+
+	return &user, nil
+}
+
+func (repo *UserRepoImpl) FindByPhoneNumber(db *gorm.DB, phone string) (*domains.Users, error) {
+	var user domains.Users
+
+	err := db.
+		Preload("Verified").
+		Joins("JOIN userverified ON users.user_id = userverified.user_id").
+		Where("userverified.phonenumber = ? AND userverified.verified = '1'", phone).
+		First(&user).Error
+
+	if err != nil {
+		return nil, err
 	}
 
 	return &user, nil
