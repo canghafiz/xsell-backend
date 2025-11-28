@@ -34,6 +34,11 @@ func NewRouter(r Router) *Router {
 		{
 			bannerGroup.GET("/", r.Dependency.BannerCont.GetBanners)
 		}
+
+		categoryGroup := generalGroup.Group("categories")
+		{
+			categoryGroup.GET("/", r.Dependency.CategoryCont.GetCategories)
+		}
 	}
 
 	// Admin
