@@ -59,6 +59,12 @@ func (serv *OtpServImpl) SendEmailVerification(request otp.SendRequest) error {
 
 	// Call repo
 	if err := serv.OtpRepo.SendOtp(tx, model); err != nil {
+		errorMessage := err.Error()
+
+		if errorMessage == "email not exist" {
+			return err
+		}
+
 		log.Printf("[OtpRepo.SendOtp] error: %v", err)
 		return fmt.Errorf("failed to send OTP, please try again later")
 	}
@@ -85,6 +91,7 @@ func (serv *OtpServImpl) CheckOtp(request otp.CheckRequest) error {
 	}
 
 	model := otp.CheckRequestToDomains(request)
+	model.Purpose = "email_verification"
 
 	// Call repo
 	result, err := serv.OtpRepo.CheckOtp(serv.Db, model)

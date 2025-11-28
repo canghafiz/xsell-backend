@@ -15,9 +15,21 @@ func NewOtpRepoImpl() *OtpRepoImpl {
 }
 
 func (repo *OtpRepoImpl) SendOtp(db *gorm.DB, otp domains.Otp) error {
-	err := db.Create(&otp).Error
-	if err != nil {
-		return err
+	var count int64
+	if err := db.Model(&domains.Users{}).Where("email = ?", otp.Email).Count(&count).Error; err != nil {
+		return fmt.Errorf("database error: %w", err)
+	}
+
+	if count == 0 {
+		return fmt.Errorf("email not exist")
+	}
+
+	if err := db.Where("email = ? AND purpose = ?", otp.Email, otp.Purpose).Delete(&domains.Otp{}).Error; err != nil {
+		return fmt.Errorf("failed to delete old OTP: %w", err)
+	}
+
+	if err := db.Create(&otp).Error; err != nil {
+		return fmt.Errorf("failed to save OTP: %w", err)
 	}
 
 	return nil
