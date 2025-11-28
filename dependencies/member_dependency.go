@@ -29,24 +29,29 @@ type MemberDependency struct {
 	PageLayoutRepo repositories.PageLayoutRepo
 	PageLayoutServ member.PageLayoutServMember
 	PageLayoutCont cont.PageLayoutContMember
+	OtpCont        cont.OtpContMember
 }
 
-func NewMemberDependency(db *gorm.DB, validator *validator.Validate, redisConfig domains.RedisConfig, jwtKey string) *MemberDependency {
+func NewMemberDependency(db *gorm.DB, validator *validator.Validate, redisConfig domains.RedisConfig, jwtKey string, twilio domains.Twilio) *MemberDependency {
 	// Repositories
 	userRepo := impl.NewUserRepoImpl()
 	productRepo := implRepo.NewProductRepoMemberImpl()
 	pageLayoutRepo := impl.NewPageLayoutRepoImpl()
+	otpRepo := impl.NewOtpRepoImpl()
 
 	// Services
 	redisServ := implGeneralServ.NewRedisServiceImpl(redisConfig)
 	userServ := implServ.NewUserServMemberImpl(userRepo, db, validator, jwtKey)
 	productServ := implServ.NewProductServMemberImpl(db, validator, productRepo)
 	pageLayoutServ := implServ.NewPageLayoutServMemberImpl(db, redisServ, pageLayoutRepo)
+	twilioServ := implGeneralServ.NewTwilioServImpl(twilio)
+	otpServ := implServ.NewOtpServMemberImpl(db, validator, otpRepo, twilioServ)
 
 	// Controllers
 	userCont := implCont.NewUserContMemberImpl(userServ)
 	productCont := implCont.NewProductContMemberImpl(productServ)
 	pageLayoutCont := implCont.NewPageLayoutContMemberImpl(pageLayoutServ)
+	otpCont := implCont.NewOtpContMemberImpl(otpServ)
 
-	return &MemberDependency{Db: db, RedisServ: redisServ, UserRepo: userRepo, UserCont: userCont, ProductCont: productCont, PageLayoutCont: pageLayoutCont}
+	return &MemberDependency{Db: db, RedisServ: redisServ, UserRepo: userRepo, UserCont: userCont, ProductCont: productCont, PageLayoutCont: pageLayoutCont, OtpCont: otpCont}
 }

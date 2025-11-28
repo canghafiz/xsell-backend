@@ -1,5 +1,5 @@
 package services
 
 type TwilioServ interface {
-	SendOtpToPhoneNumber()
+	SendOtpToPhoneNumber(phoneNumber, otpCode string) error
 }

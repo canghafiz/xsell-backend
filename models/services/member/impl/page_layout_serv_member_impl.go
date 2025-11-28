@@ -34,8 +34,6 @@ func (serv *PageLayoutServMemberImpl) GetProductDetailLayouts(sectionLimits map[
 }
 
 func (serv *PageLayoutServMemberImpl) getPageLayout(pageKey string, sectionLimits map[string]int) (resources.PageResource, error) {
-	// Buat cache key yang unik berdasarkan kombinasi pageKey + sectionLimits
-	// Untuk kesederhanaan, kita bisa urutkan key dan gabungkan jadi string
 	var cacheKeys []string
 	for secKey, limit := range sectionLimits {
 		cacheKeys = append(cacheKeys, fmt.Sprintf("%s:%d", secKey, limit))
@@ -44,7 +42,7 @@ func (serv *PageLayoutServMemberImpl) getPageLayout(pageKey string, sectionLimit
 	cacheKeySuffix := strings.Join(cacheKeys, ",")
 	cacheKey := fmt.Sprintf("page:%s:layout:%s", pageKey, cacheKeySuffix)
 
-	// Coba ambil dari cache
+	// Get From Cache
 	var results resources.PageResource
 	cachedResult, err := helpers.GetFromCache(serv.RedisServ.GetData, cacheKey, &results)
 	if err == nil && cachedResult != nil {
@@ -54,7 +52,7 @@ func (serv *PageLayoutServMemberImpl) getPageLayout(pageKey string, sectionLimit
 		}
 	}
 
-	// Ambil layout dari repositori
+	// Call Repo
 	layouts, errLayout := serv.PageLayoutRepo.GetPageLayout(serv.Db, pageKey)
 	if errLayout != nil {
 		log.Printf("[PageLayoutRepo.GetPageLayout] error: %v", errLayout)
@@ -92,7 +90,7 @@ func (serv *PageLayoutServMemberImpl) getPageLayout(pageKey string, sectionLimit
 		Data:    sections,
 	}
 
-	// Simpan ke cache
+	// Save to cache
 	if errCache := helpers.SetToCache(serv.RedisServ.SetData, cacheKey, result, 1440); errCache != nil {
 		log.Printf("Failed to cache page layout for key %s: %v", cacheKey, errCache)
 	}

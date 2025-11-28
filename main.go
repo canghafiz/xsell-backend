@@ -49,11 +49,18 @@ func main() {
 		Password: os.Getenv("REDIS_PASS"),
 	}
 
+	// Twilio Config
+	twilio := domains.Twilio{
+		AccountId:  os.Getenv("TWILIO_ACCOUNT_SID"),
+		AuthToken:  os.Getenv("TWILIO_AUTH_TOKEN"),
+		FromNumber: os.Getenv("TWILIO_PHONE_NUMBER"),
+	}
+
 	// Other
 	validate := validator.New()
 
 	// Dependency
-	memberDependency := dependencies.NewMemberDependency(db, validate, redisConfig, jwtKey)
+	memberDependency := dependencies.NewMemberDependency(db, validate, redisConfig, jwtKey, twilio)
 	adminDependency := dependencies.NewAdminDependency(db, validate)
 	dependency := dependencies.NewDependency()
 

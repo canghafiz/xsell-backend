@@ -74,6 +74,12 @@ func NewRouter(r Router) *Router {
 			pageGroup.GET("/home", r.MemberDependency.PageLayoutCont.GetHomeLayouts)
 			pageGroup.GET("/detail", r.MemberDependency.PageLayoutCont.GetProductDetailLayouts)
 		}
+
+		otpGroup := memberGroup.Group("/otp")
+		{
+			otpGroup.POST("/send", r.MemberDependency.OtpCont.SendOtpPhoneVerify)
+			otpGroup.POST("/verifyPhone", r.MemberDependency.OtpCont.CheckOtpPhoneVerify)
+		}
 	}
 
 	return &Router{
