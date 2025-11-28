@@ -77,8 +77,8 @@ func NewRouter(r Router) *Router {
 
 		otpGroup := memberGroup.Group("/otp")
 		{
-			otpGroup.POST("/send", r.MemberDependency.OtpCont.SendOtpPhoneVerify)
-			otpGroup.POST("/verifyPhone", r.MemberDependency.OtpCont.CheckOtpPhoneVerify)
+			otpGroup.POST("/sendEmail", r.Dependency.OtpCont.SendEmailVerification)
+			otpGroup.POST("/verifyEmail", r.Dependency.OtpCont.CheckOtp)
 		}
 	}
 

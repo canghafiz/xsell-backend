@@ -98,22 +98,6 @@ func (repo *UserRepoImpl) FindByEmail(db *gorm.DB, email string) (*domains.Users
 	return &user, nil
 }
 
-func (repo *UserRepoImpl) FindByPhoneNumber(db *gorm.DB, phone string) (*domains.Users, error) {
-	var user domains.Users
-
-	err := db.
-		Preload("Verified").
-		Joins("JOIN userverified ON users.user_id = userverified.user_id").
-		Where("userverified.phonenumber = ? AND userverified.verified = '1'", phone).
-		First(&user).Error
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
 func (repo *UserRepoImpl) CheckPasswordValid(db *gorm.DB, user domains.Users) (bool, error) {
 	result, err := repo.FindByEmail(db, user.Email)
 	if err != nil {

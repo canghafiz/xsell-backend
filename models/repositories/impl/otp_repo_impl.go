@@ -27,7 +27,7 @@ func (repo *OtpRepoImpl) CheckOtp(db *gorm.DB, otp domains.Otp) (bool, error) {
 	var storedOtp domains.Otp
 
 	err := db.
-		Where("phone_number = ? AND code = ? AND purpose = ?", otp.PhoneNumber, otp.Code, otp.Purpose).
+		Where("email = ? AND code = ? AND purpose = ?", otp.Email, otp.Code, otp.Purpose).
 		Where("expire_at > NOW()").
 		First(&storedOtp).Error
 

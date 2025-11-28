@@ -4,20 +4,20 @@ import (
 	"be/exceptions"
 	"be/helpers"
 	"be/models/requests/member/otp"
-	"be/models/services/member"
+	"be/models/services"
 
 	"github.com/gin-gonic/gin"
 )
 
-type OtpContMemberImpl struct {
-	OtpServ member.OtpServMember
+type OtpContImpl struct {
+	OtpServ services.OtpServ
 }
 
-func NewOtpContMemberImpl(otpServ member.OtpServMember) *OtpContMemberImpl {
-	return &OtpContMemberImpl{OtpServ: otpServ}
+func NewOtpContImpl(otpServ services.OtpServ) *OtpContImpl {
+	return &OtpContImpl{OtpServ: otpServ}
 }
 
-func (cont *OtpContMemberImpl) SendOtpPhoneVerify(context *gin.Context) {
+func (cont *OtpContImpl) SendEmailVerification(context *gin.Context) {
 	// Parse Request Body
 	request := otp.SendRequest{}
 	errParse := helpers.ReadFromRequestBody(context, &request)
@@ -27,7 +27,7 @@ func (cont *OtpContMemberImpl) SendOtpPhoneVerify(context *gin.Context) {
 	}
 
 	// Call Service
-	errServ := cont.OtpServ.SendOtpToPhoneVerify(request)
+	errServ := cont.OtpServ.SendEmailVerification(request)
 	if errServ != nil {
 		exceptions.ErrorHandler(context, errServ)
 		return
@@ -47,7 +47,7 @@ func (cont *OtpContMemberImpl) SendOtpPhoneVerify(context *gin.Context) {
 	}
 }
 
-func (cont *OtpContMemberImpl) CheckOtpPhoneVerify(context *gin.Context) {
+func (cont *OtpContImpl) CheckOtp(context *gin.Context) {
 	// Parse Request Body
 	request := otp.CheckRequest{}
 	errParse := helpers.ReadFromRequestBody(context, &request)
@@ -57,7 +57,7 @@ func (cont *OtpContMemberImpl) CheckOtpPhoneVerify(context *gin.Context) {
 	}
 
 	// Call Service
-	errServ := cont.OtpServ.CheckOtpPhoneVerify(request)
+	errServ := cont.OtpServ.CheckOtp(request)
 	if errServ != nil {
 		exceptions.ErrorHandler(context, errServ)
 		return

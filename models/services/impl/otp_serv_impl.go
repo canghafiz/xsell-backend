@@ -14,29 +14,31 @@ import (
 	"gorm.io/gorm"
 )
 
-type OtpServMemberImpl struct {
-	Db         *gorm.DB
-	Validator  *validator.Validate
-	OtpRepo    repositories.OtpRepo
-	TwilioServ services.TwilioServ
+type OtpServImpl struct {
+	Db        *gorm.DB
+	Validator *validator.Validate
+	OtpRepo   repositories.OtpRepo
+	SmtpServ  services.SmtpServ
 }
 
-func NewOtpServMemberImpl(db *gorm.DB, validator *validator.Validate, otpRepo repositories.OtpRepo, twilioServ services.TwilioServ) *OtpServMemberImpl {
-	return &OtpServMemberImpl{Db: db, Validator: validator, OtpRepo: otpRepo, TwilioServ: twilioServ}
+func NewOtpServImpl(db *gorm.DB, validator *validator.Validate, otpRepo repositories.OtpRepo, smtpServ services.SmtpServ) *OtpServImpl {
+	return &OtpServImpl{Db: db, Validator: validator, OtpRepo: otpRepo, SmtpServ: smtpServ}
 }
 
-func (serv *OtpServMemberImpl) SendOtpToPhoneVerify(request otp.SendRequest) error {
-	if err := helpers.ErrValidator(request, serv.Validator); err != nil {
-		return err
+func (serv *OtpServImpl) SendEmailVerification(request otp.SendRequest) error {
+	errValidator := helpers.ErrValidator(request, serv.Validator)
+	if errValidator != nil {
+		return errValidator
 	}
 
+	// Begin Transaction
 	tx := serv.Db.Begin()
 	if tx.Error != nil {
 		log.Printf("Error starting transaction: %v", tx.Error)
 		return fmt.Errorf("failed to send OTP, please try again later")
 	}
 
-	// Auto-rollback
+	// Auto Rollback
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -47,7 +49,7 @@ func (serv *OtpServMemberImpl) SendOtpToPhoneVerify(request otp.SendRequest) err
 		}
 	}()
 
-	// Generate model
+	// Generate
 	model := otp.SendRequestToDomain(request)
 	code, err := serv.generateNumericOTP(6)
 	if err != nil {
@@ -55,16 +57,16 @@ func (serv *OtpServMemberImpl) SendOtpToPhoneVerify(request otp.SendRequest) err
 	}
 	model.Code = code
 
-	//  Call Repo
+	// Call repo
 	if err := serv.OtpRepo.SendOtp(tx, model); err != nil {
 		log.Printf("[OtpRepo.SendOtp] error: %v", err)
 		return fmt.Errorf("failed to send OTP, please try again later")
 	}
 
-	// Call Twilio
-	if err := serv.TwilioServ.SendOtpToPhoneNumber(model.PhoneNumber, model.Code); err != nil {
-		log.Printf("[TwilioServ.SendOtpToPhoneNumber] error: %v", err)
-		return fmt.Errorf("OTP generated but failed to deliver, please try again")
+	// Call Smtp
+	if err := serv.SmtpServ.SendEmailOtp(model.Email, model.Code); err != nil {
+		log.Printf("[SmtpServ.SendEmailOtp] error: %v", err)
+		return fmt.Errorf("failed to send OTP, please try again later")
 	}
 
 	// Commit
@@ -76,13 +78,13 @@ func (serv *OtpServMemberImpl) SendOtpToPhoneVerify(request otp.SendRequest) err
 	return nil
 }
 
-func (serv *OtpServMemberImpl) CheckOtpPhoneVerify(request otp.CheckRequest) error {
-	if err := helpers.ErrValidator(request, serv.Validator); err != nil {
-		return err
+func (serv *OtpServImpl) CheckOtp(request otp.CheckRequest) error {
+	errValidator := helpers.ErrValidator(request, serv.Validator)
+	if errValidator != nil {
+		return errValidator
 	}
 
 	model := otp.CheckRequestToDomains(request)
-	model.Purpose = "phone_verification"
 
 	// Call repo
 	result, err := serv.OtpRepo.CheckOtp(serv.Db, model)
@@ -91,14 +93,14 @@ func (serv *OtpServMemberImpl) CheckOtpPhoneVerify(request otp.CheckRequest) err
 		return fmt.Errorf("failed to check OTP, please try again later")
 	}
 	if !result {
-		log.Printf("Otp repo result is false")
+		log.Printf("Check otp result is false")
 		return fmt.Errorf("failed to check OTP, please try again later")
 	}
 
 	return nil
 }
 
-func (serv *OtpServMemberImpl) generateNumericOTP(length int) (string, error) {
+func (serv *OtpServImpl) generateNumericOTP(length int) (string, error) {
 	const digits = "0123456789"
 	result := make([]byte, length)
 	maxCode := big.NewInt(int64(len(digits)))

@@ -31,6 +31,7 @@ func main() {
 	// Env
 	port := os.Getenv("APP_PORT")
 	jwtKey := os.Getenv("JWT_KEY")
+	appName := os.Getenv("APP_NAME")
 
 	// Database Config
 	dbPort := os.Getenv("DB_PORT")
@@ -49,27 +50,29 @@ func main() {
 		Password: os.Getenv("REDIS_PASS"),
 	}
 
-	// Twilio Config
-	twilio := domains.Twilio{
-		AccountId:  os.Getenv("TWILIO_ACCOUNT_SID"),
-		AuthToken:  os.Getenv("TWILIO_AUTH_TOKEN"),
-		FromNumber: os.Getenv("TWILIO_PHONE_NUMBER"),
+	// Smtp Config
+	smtp := domains.Smtp{
+		Host:     os.Getenv("SMTP_HOST"),
+		Port:     os.Getenv("SMTP_PORT"),
+		Username: os.Getenv("SMTP_USERNAME"),
+		Password: os.Getenv("SMTP_PASSWORD"),
+		From:     os.Getenv("SMTP_FROM"),
 	}
 
 	// Other
 	validate := validator.New()
 
 	// Dependency
-	memberDependency := dependencies.NewMemberDependency(db, validate, redisConfig, jwtKey, twilio)
+	memberDependency := dependencies.NewMemberDependency(db, validate, redisConfig, jwtKey)
 	adminDependency := dependencies.NewAdminDependency(db, validate)
-	dependency := dependencies.NewDependency()
+	dependency := dependencies.NewDependency(db, validate, smtp, appName)
 
 	// Setup Router
 	engine := gin.Default()
 	engine.Use(cors.New(cors.Config{
 		AllowOrigins:  []string{"*"},
 		AllowMethods:  []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:  []string{"Origin", "Content-Type", "Accept", "Authorization", "Email", "Code"},
+		AllowHeaders:  []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders: []string{"Content-Length"},
 		MaxAge:        12 * time.Hour,
 	}))

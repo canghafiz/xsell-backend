@@ -50,7 +50,7 @@ CREATE TABLE Users (
 CREATE TABLE UserVerified (
                               verified_id SERIAL PRIMARY KEY,
                               user_id INTEGER REFERENCES Users(user_id) ON DELETE CASCADE,
-                              phoneNumber VARCHAR(25),
+                              email VARCHAR(50),
                               verified BOOLEAN DEFAULT FALSE,
                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                               updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
