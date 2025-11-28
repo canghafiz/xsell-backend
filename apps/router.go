@@ -29,6 +29,11 @@ func NewRouter(r Router) *Router {
 			storageGroup.POST("/uploadFiles", r.Dependency.FileCont.UploadFiles)
 			storageGroup.DELETE("/deleteFile", r.Dependency.FileCont.DeleteFiles)
 		}
+
+		bannerGroup := generalGroup.Group("banners")
+		{
+			bannerGroup.GET("/", r.Dependency.BannerCont.GetBanners)
+		}
 	}
 
 	// Admin
