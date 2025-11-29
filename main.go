@@ -65,7 +65,7 @@ func main() {
 	// Dependency
 	memberDependency := dependencies.NewMemberDependency(db, validate, redisConfig, jwtKey)
 	adminDependency := dependencies.NewAdminDependency(db, validate)
-	dependency := dependencies.NewDependency(db, validate, smtp, appName)
+	dependency := dependencies.NewDependency(db, validate, smtp, appName, jwtKey)
 
 	// Setup Router
 	engine := gin.Default()

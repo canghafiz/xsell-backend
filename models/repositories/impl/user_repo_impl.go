@@ -56,6 +56,21 @@ func (repo *UserRepoImpl) CheckTokenValid(db *gorm.DB, user domains.Users) bool 
 	return int(count) > 0
 }
 
+func (repo *UserRepoImpl) CheckUserIdValid(db *gorm.DB, userId int) bool {
+	var count int64
+
+	result := db.
+		Model(&domains.Users{}).
+		Where("user_id = ?", userId).
+		Count(&count)
+
+	if result.Error != nil {
+		return false
+	}
+
+	return int(count) > 0
+}
+
 func (repo *UserRepoImpl) Update(db *gorm.DB, user domains.Users) (*domains.Users, error) {
 	result := db.
 		Model(&domains.Users{}).
@@ -81,6 +96,31 @@ func (repo *UserRepoImpl) Update(db *gorm.DB, user domains.Users) (*domains.User
 	}
 
 	return &updatedData, nil
+}
+
+func (repo *UserRepoImpl) ChangePassword(db *gorm.DB, user domains.Users) error {
+	result := db.
+		Model(&domains.Users{}).
+		Where("user_id = ?", user.UserId).
+		Updates(map[string]interface{}{
+			"password": user.Password,
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("user with ID %d not found or no changes were made", user.UserId)
+	}
+
+	var updatedData domains.Users
+	err := db.Where("user_id = ?", user.UserId).First(&updatedData).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (repo *UserRepoImpl) FindByEmail(db *gorm.DB, email string) (*domains.Users, error) {

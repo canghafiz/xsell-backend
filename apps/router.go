@@ -19,6 +19,7 @@ type Router struct {
 
 func NewRouter(r Router) *Router {
 	authMiddleware := middlewares.AuthMiddleware(r.MemberDependency.Db, r.MemberDependency.UserRepo, r.JwtKey)
+	pwMiddleware := middlewares.PwMiddleware(r.MemberDependency.Db, r.MemberDependency.UserRepo, r.JwtKey)
 
 	r.Engine.StaticFS("/assets", http.Dir("./assets"))
 	// General
@@ -43,6 +44,17 @@ func NewRouter(r Router) *Router {
 		metaSeoGroup := generalGroup.Group("meta")
 		{
 			metaSeoGroup.GET("/page/:pageKey", r.Dependency.MetaSeoCont.GetByPageKey)
+		}
+
+		userGroup := generalGroup.Group("user")
+		{
+			userGroup.POST("/sendPasswordReset", r.Dependency.OtpCont.SendPasswordReset)
+			userGroup.POST("/checkOtpPassword", r.Dependency.OtpCont.CheckOtpPassword)
+
+			middleware := userGroup.Use(pwMiddleware)
+			{
+				middleware.PUT("/changePassword", r.Dependency.UserCont.ChangePw)
+			}
 		}
 	}
 
