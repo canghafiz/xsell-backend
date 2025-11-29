@@ -39,6 +39,11 @@ func NewRouter(r Router) *Router {
 		{
 			categoryGroup.GET("/", r.Dependency.CategoryCont.GetCategories)
 		}
+
+		metaSeoGroup := generalGroup.Group("meta")
+		{
+			metaSeoGroup.GET("/page/:pageKey", r.Dependency.MetaSeoCont.GetByPageKey)
+		}
 	}
 
 	// Admin

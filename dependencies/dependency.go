@@ -16,6 +16,7 @@ type Dependency struct {
 	OtpCont      controllers.OtpCont
 	BannerCont   controllers.BannerCont
 	CategoryCont controllers.CategoryCont
+	MetaSeoCont  controllers.MetaSeoCont
 }
 
 func NewDependency(db *gorm.DB, validator *validator.Validate, smtp domains.Smtp, appName string) *Dependency {
@@ -23,6 +24,7 @@ func NewDependency(db *gorm.DB, validator *validator.Validate, smtp domains.Smtp
 	otpRepo := repo.NewOtpRepoImpl()
 	bannerRepo := repo.NewBannerRepoImpl()
 	categoryRepo := repo.NewCategoryRepoImpl()
+	metaRepo := repo.NewMetaSeoRepoImpl()
 
 	// Serv
 	fileServ := impl.NewFileServImpl()
@@ -30,17 +32,20 @@ func NewDependency(db *gorm.DB, validator *validator.Validate, smtp domains.Smtp
 	otpServ := impl.NewOtpServImpl(db, validator, otpRepo, smtpServ)
 	bannerServ := impl.NewBannerServImpl(db, bannerRepo)
 	categoryServ := impl.NewCategoryServImpl(db, categoryRepo)
+	metaServ := impl.NewMetaSeoServImpl(db, metaRepo)
 
 	// Cont
 	fileCont := contImpl.NewFileContImpl(fileServ)
 	otpCont := contImpl.NewOtpContImpl(otpServ)
 	bannerCont := contImpl.NewBannerContImpl(bannerServ)
 	categoryCont := contImpl.NewCategoryContImpl(categoryServ)
+	metaCont := contImpl.NewMetaSeoContImpl(metaServ)
 
 	return &Dependency{
 		FileCont:     fileCont,
 		OtpCont:      otpCont,
 		BannerCont:   bannerCont,
 		CategoryCont: categoryCont,
+		MetaSeoCont:  metaCont,
 	}
 }
