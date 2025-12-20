@@ -12,8 +12,8 @@ type RegisterRequest struct {
 	Password  string  `json:"password" validate:"required,min=6,max=100"`
 }
 
-func RegisterRequestToDomain(request RegisterRequest) domains.Users {
-	return domains.Users{
+func RegisterRequestToDomain(request RegisterRequest) *domains.Users {
+	return &domains.Users{
 		FirstName: request.FirstName,
 		LastName:  request.LastName,
 		Email:     request.Email,

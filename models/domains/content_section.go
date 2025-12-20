@@ -12,6 +12,7 @@ type ContentSection struct {
 	SectionKey  string        `gorm:"column:section_key;not null;uniqueIndex"`
 	Title       string        `gorm:"column:title;not null"`
 	Subtitle    string        `gorm:"column:subtitle"`
+	Url         string        `gorm:"column:url;not null"`
 	SectionType string        `gorm:"column:section_type;not null"` // dynamic, fixed, predefined
 	Config      ContentConfig `gorm:"column:config;type:jsonb;not null"`
 	IsActive    bool          `gorm:"column:is_active;default:true"`

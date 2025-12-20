@@ -32,6 +32,8 @@ func main() {
 	port := os.Getenv("APP_PORT")
 	jwtKey := os.Getenv("JWT_KEY")
 	appName := os.Getenv("APP_NAME")
+	mapApiEndpoint := os.Getenv("MAP_API_ENDPOINT")
+	mapApiKey := os.Getenv("MAP_API_KEY")
 
 	// Database Config
 	dbPort := os.Getenv("DB_PORT")
@@ -65,7 +67,7 @@ func main() {
 	// Dependency
 	memberDependency := dependencies.NewMemberDependency(db, validate, redisConfig, jwtKey)
 	adminDependency := dependencies.NewAdminDependency(db, validate)
-	dependency := dependencies.NewDependency(db, validate, smtp, appName, jwtKey)
+	dependency := dependencies.NewDependency(db, validate, smtp, appName, jwtKey, mapApiEndpoint, mapApiKey)
 
 	// Setup Router
 	engine := gin.Default()

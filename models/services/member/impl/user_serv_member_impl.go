@@ -42,7 +42,7 @@ func (serv *UserServMemberImpl) Register(request user.RegisterRequest) error {
 	model.Role = domains.RoleMember
 
 	// Call repo
-	errCreate := serv.UserRepo.Create(serv.DB, model)
+	errCreate := serv.UserRepo.Create(serv.DB, *model)
 	if errCreate != nil {
 		log.Printf("[UserRepo.Create] error: %v", errCreate)
 		return fmt.Errorf("failed to register, please try again later")
@@ -62,6 +62,11 @@ func (serv *UserServMemberImpl) Login(request user.LoginRequest) (*string, error
 	findUser, errFindUser := serv.UserRepo.FindByEmail(serv.DB, request.Email)
 	if findUser == nil || errFindUser != nil {
 		log.Printf("[UserRepo.FindByEmail] error: %v", errFindUser)
+		return nil, fmt.Errorf("user not found")
+	}
+
+	// Cek user role
+	if findUser.Role != domains.RoleMember {
 		return nil, fmt.Errorf("user not found")
 	}
 

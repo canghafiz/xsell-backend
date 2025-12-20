@@ -1,6 +1,6 @@
 package domains
 
 type File struct {
-	FileName string
-	FileURL  string
+	FileName string `json:"file_name"`
+	FileURL  string `json:"file_url"`
 }

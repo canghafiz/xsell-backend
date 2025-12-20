@@ -1,6 +1,6 @@
 CREATE TABLE otp (
                               otp_id SERIAL PRIMARY KEY,
-                              email VARCHAR(25),
+                              email VARCHAR(100),
                               code VARCHAR(10) NOT NULL,
                               purpose VARCHAR(20) NOT NULL DEFAULT 'email_verification',
                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

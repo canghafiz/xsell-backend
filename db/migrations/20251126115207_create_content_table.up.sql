@@ -2,6 +2,7 @@ CREATE TABLE content_sections (
                                   section_id    SERIAL PRIMARY KEY,
                                   section_key   VARCHAR(50)  NOT NULL UNIQUE,  -- "best_selling", "featured", dll
                                   title         VARCHAR(100) NOT NULL,
+                                  url           VARCHAR(100) NOT NULL,
                                   subtitle      VARCHAR(255),
                                   section_type  VARCHAR(30)  NOT NULL,        -- "dynamic", "fixed", "predefined"
                                   config        JSONB        NOT NULL,         -- structured config (BUKAN raw SQL)

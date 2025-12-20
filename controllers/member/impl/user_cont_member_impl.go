@@ -79,7 +79,7 @@ func (cont *UserContMemberImpl) Login(context *gin.Context) {
 }
 
 func (cont *UserContMemberImpl) Logout(context *gin.Context) {
-	email := context.Param("email")
+	email := context.Query("email")
 
 	// Call Service
 	errServ := cont.UserService.Logout(email)

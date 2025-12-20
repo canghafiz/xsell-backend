@@ -3,6 +3,7 @@ package impl
 import (
 	"be/exceptions"
 	"be/helpers"
+	"be/models/requests/member/page"
 	"be/models/services/member"
 	"strconv"
 
@@ -18,40 +19,20 @@ func NewPageLayoutContMemberImpl(pageLayoutServ member.PageLayoutServMember) *Pa
 }
 
 func (cont *PageLayoutContMemberImpl) GetHomeLayouts(context *gin.Context) {
-	validSections := map[string]bool{
-		"newly_listed":     true,
-		"trending":         true,
-		"like_new_items":   true,
-		"good_condition":   true,
-		"used_electronics": true,
-		"home_items":       true,
-		"fashion_items":    true,
-		"editor_pick":      true,
+	limit, _ := strconv.Atoi(context.DefaultQuery("limit", "100"))
+	lat := context.Query("latitude")
+	lng := context.Query("longitude")
+
+	req := page.HomeLayoutRequest{
+		Latitude:  lat,
+		Longitude: lng,
+		Limit:     limit,
 	}
 
-	sectionLimits := make(map[string]int)
-	
-	for key, values := range context.Request.URL.Query() {
-		if !validSections[key] {
-			continue
-		}
-
-		if len(values) == 0 {
-			continue
-		}
-
-		limit, err := strconv.Atoi(values[0])
-		if err != nil || limit <= 0 {
-			continue
-		}
-
-		sectionLimits[key] = limit
-	}
-
-	// Call Serv
-	result, errServ := cont.PageLayoutServ.GetHomeLayouts(sectionLimits)
-	if errServ != nil {
-		exceptions.ErrorHandler(context, errServ)
+	// Call serv
+	result, err := cont.PageLayoutServ.GetHomeLayouts(req)
+	if err != nil {
+		exceptions.ErrorHandler(context, err)
 		return
 	}
 
@@ -70,34 +51,22 @@ func (cont *PageLayoutContMemberImpl) GetHomeLayouts(context *gin.Context) {
 }
 
 func (cont *PageLayoutContMemberImpl) GetProductDetailLayouts(context *gin.Context) {
-	validSections := map[string]bool{
-		"trending":       true,
-		"like_new_items": true,
-	}
+	limit, _ := strconv.Atoi(context.DefaultQuery("limit", "100"))
+	exceptId, _ := strconv.Atoi(context.Param("exceptId"))
+	lat := context.Query("latitude")
+	lng := context.Query("longitude")
 
-	sectionLimits := make(map[string]int)
-
-	for key, values := range context.Request.URL.Query() {
-		if !validSections[key] {
-			continue
-		}
-
-		if len(values) == 0 {
-			continue
-		}
-
-		limit, err := strconv.Atoi(values[0])
-		if err != nil || limit <= 0 {
-			continue
-		}
-
-		sectionLimits[key] = limit
+	req := page.ProductDetailLayoutRequest{
+		ExceptId:  exceptId,
+		Latitude:  lat,
+		Longitude: lng,
+		Limit:     limit,
 	}
 
 	// Call Serv
-	result, errServ := cont.PageLayoutServ.GetProductDetailLayouts(sectionLimits)
-	if errServ != nil {
-		exceptions.ErrorHandler(context, errServ)
+	result, err := cont.PageLayoutServ.GetProductDetailLayouts(req)
+	if err != nil {
+		exceptions.ErrorHandler(context, err)
 		return
 	}
 

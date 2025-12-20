@@ -56,6 +56,12 @@ func NewRouter(r Router) *Router {
 				middleware.PUT("/changePassword", r.Dependency.UserCont.ChangePw)
 			}
 		}
+
+		mapGroup := generalGroup.Group("map")
+		{
+			mapGroup.GET("/getAddress", r.Dependency.MapCont.GetAddress)
+			mapGroup.GET("/autoComplete", r.Dependency.MapCont.AutoComplete)
+		}
 	}
 
 	// Admin
@@ -80,32 +86,49 @@ func NewRouter(r Router) *Router {
 			authMiddleware := userGroup.Use(authMiddleware)
 			{
 				authMiddleware.PUT("/:userId", r.MemberDependency.UserCont.UpdateData)
-				authMiddleware.DELETE("/logout/:email", r.MemberDependency.UserCont.Logout)
+				authMiddleware.DELETE("/logout", r.MemberDependency.UserCont.Logout)
 			}
 		}
 
 		productGroup := memberGroup.Group("/product")
 		{
 			productGroup.GET("/:productSlug", r.MemberDependency.ProductCont.GetSingleBySlug)
+			productGroup.GET("/relatedByCategories/:exceptId", r.MemberDependency.ProductCont.GetRelatedByCategory)
+			productGroup.GET("/category", r.MemberDependency.ProductCont.GetByCategory)
+			productGroup.GET("/section/:sectionKey", r.MemberDependency.ProductCont.GetBySectionKey)
+			productGroup.GET("/search", r.MemberDependency.ProductCont.Search)
 
 			authMiddleware := productGroup.Use(authMiddleware)
 			{
 				authMiddleware.POST("/", r.MemberDependency.ProductCont.Create)
 				authMiddleware.PUT("/:productId", r.MemberDependency.ProductCont.Update)
 				authMiddleware.DELETE("/:productId", r.MemberDependency.ProductCont.Delete)
+				authMiddleware.GET("/user/:userId", r.MemberDependency.ProductCont.GetProductsByUserId)
 			}
 		}
 
 		pageGroup := memberGroup.Group("/page")
 		{
 			pageGroup.GET("/home", r.MemberDependency.PageLayoutCont.GetHomeLayouts)
-			pageGroup.GET("/detail", r.MemberDependency.PageLayoutCont.GetProductDetailLayouts)
+			pageGroup.GET("/detail/:exceptId", r.MemberDependency.PageLayoutCont.GetProductDetailLayouts)
 		}
 
 		otpGroup := memberGroup.Group("/otp")
 		{
 			otpGroup.POST("/sendEmail", r.Dependency.OtpCont.SendEmailVerification)
 			otpGroup.POST("/verifyEmail", r.Dependency.OtpCont.CheckOtp)
+		}
+
+		categoryGroup := memberGroup.Group("/category")
+		{
+			categoryGroup.GET("/withSub", r.MemberDependency.CategoryCont.GetWithSub)
+			// Sub
+			categoryGroup.GET("/:categorySlug/subCategories", r.MemberDependency.SubCategoryCont.GetByCategoryParent)
+		}
+
+		productSpecGroup := memberGroup.Group("/productSpec")
+		{
+			productSpecGroup.GET("/sub/:subId", r.MemberDependency.ProductSpecCont.GetProductSpecBySubId)
 		}
 	}
 

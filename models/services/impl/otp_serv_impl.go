@@ -2,6 +2,7 @@ package impl
 
 import (
 	"be/helpers"
+	"be/models/domains"
 	"be/models/repositories"
 	"be/models/requests/member/otp"
 	user2 "be/models/resources/user"
@@ -17,16 +18,17 @@ import (
 )
 
 type OtpServImpl struct {
-	Db        *gorm.DB
-	Validator *validator.Validate
-	OtpRepo   repositories.OtpRepo
-	SmtpServ  services.SmtpServ
-	UserRepo  repositories.UserRepo
-	JwtKey    string
+	Db             *gorm.DB
+	Validator      *validator.Validate
+	OtpRepo        repositories.OtpRepo
+	SmtpServ       services.SmtpServ
+	UserRepo       repositories.UserRepo
+	UserVerifyRepo repositories.UserVerifyRepo
+	JwtKey         string
 }
 
-func NewOtpServImpl(db *gorm.DB, validator *validator.Validate, otpRepo repositories.OtpRepo, smtpServ services.SmtpServ, userRepo repositories.UserRepo, jwtKey string) *OtpServImpl {
-	return &OtpServImpl{Db: db, Validator: validator, OtpRepo: otpRepo, SmtpServ: smtpServ, UserRepo: userRepo, JwtKey: jwtKey}
+func NewOtpServImpl(db *gorm.DB, validator *validator.Validate, otpRepo repositories.OtpRepo, smtpServ services.SmtpServ, userRepo repositories.UserRepo, userVerifyRepo repositories.UserVerifyRepo, jwtKey string) *OtpServImpl {
+	return &OtpServImpl{Db: db, Validator: validator, OtpRepo: otpRepo, SmtpServ: smtpServ, UserRepo: userRepo, UserVerifyRepo: userVerifyRepo, JwtKey: jwtKey}
 }
 
 func (serv *OtpServImpl) SendEmailVerification(request otp.SendRequest) error {
@@ -165,6 +167,15 @@ func (serv *OtpServImpl) CheckOtp(request otp.CheckRequest) error {
 	}
 	if !result {
 		log.Printf("Check otp result is false")
+		return fmt.Errorf("failed to check OTP, please try again later")
+	}
+
+	// Call Verify Repo
+	verifyErr := serv.UserVerifyRepo.UpdateToVerified(serv.Db, domains.UserVerified{
+		Email: request.Email,
+	})
+	if verifyErr != nil {
+		log.Printf("[UserVerifyRepo.UpdateToVerified] error: %v", err)
 		return fmt.Errorf("failed to check OTP, please try again later")
 	}
 

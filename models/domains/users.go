@@ -11,7 +11,9 @@ type Users struct {
 	Password        string       `gorm:"column:password;not null"`
 	PhotoProfileUrl *string      `gorm:"column:photo_profile_url;null"`
 	Token           *string      `gorm:"column:token;null"`
-	TokenExpire     *time.Time   `gorm:"column:token_expire;null"`
+	TokenExpire     *time.Time   `gorm:"column:token_expire;null;default:null"`
+	CreatedAt       time.Time    `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt       time.Time    `gorm:"column:updated_at;autoUpdateTime"`
 	Verified        UserVerified `gorm:"foreignKey:user_id;references:user_id"`
 }
 

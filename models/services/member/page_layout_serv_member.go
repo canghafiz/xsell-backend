@@ -1,8 +1,11 @@
 package member
 
-import "be/models/resources"
+import (
+	"be/models/requests/member/page"
+	"be/models/resources"
+)
 
 type PageLayoutServMember interface {
-	GetHomeLayouts(sectionLimits map[string]int) (resources.PageResource, error)
-	GetProductDetailLayouts(sectionLimits map[string]int) (resources.PageResource, error)
+	GetHomeLayouts(request page.HomeLayoutRequest) (resources.PageResource, error)
+	GetProductDetailLayouts(request page.ProductDetailLayoutRequest) (resources.PageResource, error)
 }

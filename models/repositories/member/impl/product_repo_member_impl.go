@@ -1,10 +1,14 @@
 package impl
 
 import (
-	"be/helpers"
 	"be/models/domains"
+	"be/models/requests/member/product"
 	"errors"
+	"fmt"
+	"log"
+	"sort"
 
+	geo "github.com/kellydunn/golang-geo"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -28,13 +32,17 @@ func (repo *ProductRepoMemberImpl) Update(db *gorm.DB, product domains.Products)
 	if tx.Error != nil {
 		return tx.Error
 	}
+
+	// Recover from panic and rollback transaction
 	defer func() {
 		if r := recover(); r != nil {
+			// Log the panic for debugging (replace with your logger if needed)
+			log.Printf("Panic during product update (ID: %d): %v", product.ProductId, r)
 			tx.Rollback()
 		}
 	}()
 
-	// ✅ Pastikan produk ada
+	// Check if product exists
 	var exists bool
 	if err := tx.Model(&domains.Products{}).
 		Select("1").
@@ -42,20 +50,19 @@ func (repo *ProductRepoMemberImpl) Update(db *gorm.DB, product domains.Products)
 		Limit(1).
 		Scan(&exists).Error; err != nil {
 		tx.Rollback()
-		return err
+		return fmt.Errorf("failed to check product existence: %w", err)
 	}
 	if !exists {
 		tx.Rollback()
 		return gorm.ErrRecordNotFound
 	}
 
-	// --- 1. Update kolom utama ---
+	// --- 1. Update Product Fields (excluding slug) ---
 	updates := make(map[string]interface{})
 
-	// Karena Title, Description, dll bukan pointer, cek kosong aman
 	if product.Title != "" {
 		updates["title"] = product.Title
-		updates["product_slug"] = helpers.GenerateSlug(product.Title)
+		// ⚠️ DO NOT UPDATE product_slug — it should be immutable after creation for SEO
 	}
 	if product.Description != "" {
 		updates["description"] = product.Description
@@ -63,15 +70,14 @@ func (repo *ProductRepoMemberImpl) Update(db *gorm.DB, product domains.Products)
 	if product.Price != 0 {
 		updates["price"] = product.Price
 	}
-	// Karena Condition/Status wajib (validate:"required"), pasti tidak kosong jika dikirim
 	if product.Condition != "" {
 		updates["condition"] = product.Condition
 	}
 	if product.Status != "" {
 		updates["status"] = product.Status
 	}
-	if product.CategoryId != 0 {
-		updates["category_id"] = product.CategoryId
+	if product.SubCategoryId != 0 {
+		updates["sub_category_id"] = product.SubCategoryId
 	}
 
 	if len(updates) > 0 {
@@ -79,24 +85,27 @@ func (repo *ProductRepoMemberImpl) Update(db *gorm.DB, product domains.Products)
 			Where("product_id = ?", product.ProductId).
 			Updates(updates).Error; err != nil {
 			tx.Rollback()
-			return err
+			return fmt.Errorf("failed to update product fields: %w", err)
 		}
 	}
 
-	// --- 2. Handle Images: Full Replace ---
+	// --- 2. Handle Images: Full Replacement ---
 	if product.ProductImages != nil {
+		// Delete all existing images
 		if err := tx.Where("product_id = ?", product.ProductId).Delete(&domains.ProductImages{}).Error; err != nil {
 			tx.Rollback()
-			return err
+			return fmt.Errorf("failed to delete old product images: %w", err)
 		}
+
+		// Insert new images if any
 		if len(product.ProductImages) > 0 {
 			for i := range product.ProductImages {
 				product.ProductImages[i].ProductId = product.ProductId
-				product.ProductImages[i].ImageId = 0
+				product.ProductImages[i].ImageId = 0 // Let DB assign new ID
 			}
 			if err := tx.Create(&product.ProductImages).Error; err != nil {
 				tx.Rollback()
-				return err
+				return fmt.Errorf("failed to create new product images: %w", err)
 			}
 		}
 	}
@@ -104,34 +113,45 @@ func (repo *ProductRepoMemberImpl) Update(db *gorm.DB, product domains.Products)
 	// --- 3. Handle Specs: Partial UPSERT ---
 	if product.ProductSpecs != nil {
 		for _, spec := range product.ProductSpecs {
+			// Skip empty spec values if your business logic requires it
+			if spec.SpecValue == "" {
+				continue
+			}
 			spec.ProductId = product.ProductId
+			spec.ProductSpecId = 0 // Ensure new ID isn't used
+
 			err := tx.Clauses(clause.OnConflict{
 				Columns:   []clause.Column{{Name: "product_id"}, {Name: "category_product_spec_id"}},
 				DoUpdates: clause.Assignments(map[string]interface{}{"spec_value": spec.SpecValue}),
 			}).Create(&spec).Error
+
 			if err != nil {
 				tx.Rollback()
-				return err
+				return fmt.Errorf("failed to upsert product spec: %w", err)
 			}
 		}
 	}
 
-	// --- 4. Handle Location (Opsional) ---
-	// Jika struct `product.Location` diisi, update atau insert
-	// Contoh: jika Location memiliki data (misal latitude != 0), maka simpan
-	if product.Location.ProductId != 0 || product.Location.Latitude != 0 || product.Location.Longitude != 0 {
-		// Cek apakah sudah ada
+	// --- 4. Handle Location: Upsert only if location data is provided ---
+	// Compare against zero value to detect if location was intentionally sent
+	emptyLocation := domains.Location{}
+	if product.Location != emptyLocation {
 		var existingLocation domains.Location
 		err := tx.Where("product_id = ?", product.ProductId).First(&existingLocation).Error
-		if errors.Is(gorm.ErrRecordNotFound, err) {
-			// Insert baru
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Insert new location
 			product.Location.ProductId = product.ProductId
 			if err := tx.Create(&product.Location).Error; err != nil {
 				tx.Rollback()
-				return err
+				return fmt.Errorf("failed to create product location: %w", err)
 			}
-		} else if err == nil {
-			// Update existing
+		} else if err != nil {
+			// Unexpected DB error
+			tx.Rollback()
+			return fmt.Errorf("failed to fetch product location: %w", err)
+		} else {
+			// Update existing location
 			updatesLoc := make(map[string]interface{})
 			if product.Location.Latitude != 0 {
 				updatesLoc["latitude"] = product.Location.Latitude
@@ -139,19 +159,25 @@ func (repo *ProductRepoMemberImpl) Update(db *gorm.DB, product domains.Products)
 			if product.Location.Longitude != 0 {
 				updatesLoc["longitude"] = product.Location.Longitude
 			}
+			if product.Location.Address != "" {
+				updatesLoc["address"] = product.Location.Address
+			}
+
 			if len(updatesLoc) > 0 {
 				if err := tx.Model(&existingLocation).Updates(updatesLoc).Error; err != nil {
 					tx.Rollback()
-					return err
+					return fmt.Errorf("failed to update product location: %w", err)
 				}
 			}
-		} else {
-			tx.Rollback()
-			return err
 		}
 	}
 
-	return tx.Commit().Error
+	// Commit transaction
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("failed to commit product update transaction: %w", err)
+	}
+
+	return nil
 }
 
 func (repo *ProductRepoMemberImpl) GetSingleBySlug(db *gorm.DB, slug string) (*domains.Products, error) {
@@ -160,10 +186,11 @@ func (repo *ProductRepoMemberImpl) GetSingleBySlug(db *gorm.DB, slug string) (*d
 	}
 
 	var product domains.Products
-	err := db.Preload("ProductCategories").
+	err := db.Preload("SubCategory.Category").
 		Preload("ProductImages").
 		Preload("ProductSpecs.CategoryProductSpec").
 		Preload("Location").
+		Preload("Listing").
 		Where("product_slug = ?", slug).
 		First(&product).Error
 
@@ -175,6 +202,360 @@ func (repo *ProductRepoMemberImpl) GetSingleBySlug(db *gorm.DB, slug string) (*d
 	}
 
 	return &product, nil
+}
+
+func (repo *ProductRepoMemberImpl) GetRelatedByCategory(
+	db *gorm.DB,
+	categoryIds []int,
+	exceptProductId, limit int,
+	lat, lng float64,
+) ([]domains.Products, error) {
+
+	const maxRadiusKm = 100.0
+
+	// Return empty if no categories or invalid location
+	if len(categoryIds) == 0 || (lat == 0 && lng == 0) {
+		return []domains.Products{}, nil
+	}
+
+	// 1️⃣ Fetch products under the given main categories
+	var products []domains.Products
+	err := db.
+		Joins("JOIN subcategories sc ON sc.sub_category_id = products.sub_category_id").
+		Where("sc.parent_category_id IN ?", categoryIds).
+		Where("products.product_id != ?", exceptProductId).
+		Where("products.status = ?", "Available").
+		Preload("ProductImages").
+		Preload("Location").
+		Preload("Listing").
+		Find(&products).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(products) == 0 {
+		return []domains.Products{}, nil
+	}
+
+	// 2️⃣ Filter by 100km radius
+	userPoint := geo.NewPoint(lat, lng)
+	filtered := make([]domains.Products, 0, len(products))
+	distances := make(map[int]float64)
+
+	for _, p := range products {
+		if p.Location.Latitude == 0 && p.Location.Longitude == 0 {
+			continue
+		}
+		productPoint := geo.NewPoint(p.Location.Latitude, p.Location.Longitude)
+		distance := userPoint.GreatCircleDistance(productPoint)
+		if distance <= maxRadiusKm {
+			filtered = append(filtered, p)
+			distances[p.ProductId] = distance
+		}
+	}
+
+	if len(filtered) == 0 {
+		return []domains.Products{}, nil
+	}
+
+	// 3️⃣ Sort by nearest
+	sort.SliceStable(filtered, func(i, j int) bool {
+		return distances[filtered[i].ProductId] < distances[filtered[j].ProductId]
+	})
+
+	// 4️⃣ Apply limit
+	if len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+
+	return filtered, nil
+}
+
+func (repo *ProductRepoMemberImpl) GetByCategory(db *gorm.DB, filter product.FilterModel) ([]domains.Products, error) {
+	const maxRadiusKm = 100.0
+
+	// Return empty if lat/lng not set
+	if filter.Lat == 0 && filter.Lng == 0 {
+		return []domains.Products{}, nil
+	}
+
+	// Apply default values for price range
+	minPrice := filter.MinPrice
+	maxPrice := filter.MaxPrice
+	if minPrice < 0 {
+		minPrice = 0
+	}
+	if maxPrice <= 0 {
+		maxPrice = 999999999
+	}
+
+	// Apply default limit (max 100, default 20)
+	limit := filter.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	// Apply default sort
+	sortBy := filter.SortBy
+	if sortBy == "" {
+		sortBy = "latest"
+	}
+
+	// Step 1: Fetch parent category
+	var parentCategory domains.Categories
+	if err := db.Where("category_slug = ?", filter.CategorySlug).First(&parentCategory).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return []domains.Products{}, nil
+		}
+		return nil, err
+	}
+
+	// Step 2: Determine subcategories
+	var subCategoryIds []int
+	if len(filter.SubCategorySlug) > 0 {
+		if err := db.Model(&domains.SubCategories{}).
+			Where("parent_category_id = ?", parentCategory.CategoryId).
+			Where("sub_category_slug IN ?", filter.SubCategorySlug).
+			Pluck("sub_category_id", &subCategoryIds).Error; err != nil {
+			return nil, err
+		}
+		if len(subCategoryIds) == 0 {
+			return []domains.Products{}, nil
+		}
+	} else {
+		if err := db.Model(&domains.SubCategories{}).
+			Where("parent_category_id = ?", parentCategory.CategoryId).
+			Pluck("sub_category_id", &subCategoryIds).Error; err != nil {
+			return nil, err
+		}
+		if len(subCategoryIds) == 0 {
+			return []domains.Products{}, nil
+		}
+	}
+
+	// Step 3: Fetch products (with buffer for radius filtering)
+	var products []domains.Products
+	query := db.Where("sub_category_id IN ?", subCategoryIds).
+		Where("price >= ? AND price <= ?", minPrice, maxPrice).
+		Where("status = ?", "Available").
+		Preload("SubCategory").
+		Preload("ProductImages").
+		Preload("Location").
+		Preload("Listing")
+
+	// Apply sorting from request — this will be the FINAL order
+	switch sortBy {
+	case "price_asc":
+		query = query.Order("products.price ASC")
+	case "price_desc":
+		query = query.Order("products.price DESC")
+	case "oldest":
+		query = query.Order("products.created_at ASC")
+	case "latest":
+		query = query.Order("products.created_at DESC")
+	default:
+		query = query.Order("products.created_at DESC")
+	}
+
+	// Fetch extra to compensate for radius filtering
+	query = query.Limit(limit * 3)
+
+	if err := query.Find(&products).Error; err != nil {
+		return nil, err
+	}
+
+	if len(products) == 0 {
+		return []domains.Products{}, nil
+	}
+
+	// Step 4: FILTER by 100km radius (do NOT change order!)
+	userPoint := geo.NewPoint(filter.Lat, filter.Lng)
+	filtered := make([]domains.Products, 0, len(products))
+
+	for _, p := range products {
+		if p.Location.Latitude == 0 && p.Location.Longitude == 0 {
+			continue
+		}
+		productPoint := geo.NewPoint(p.Location.Latitude, p.Location.Longitude)
+		distance := userPoint.GreatCircleDistance(productPoint)
+		if distance <= maxRadiusKm {
+			filtered = append(filtered, p)
+			// Stop early if we already have enough items
+			if len(filtered) >= limit {
+				break
+			}
+		}
+	}
+
+	// Truncate to final limit (preserve original order from DB)
+	if len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+
+	return filtered, nil
+}
+
+func (repo *ProductRepoMemberImpl) GetBySectionKey(
+	db *gorm.DB,
+	key string,
+	model product.FilterModel,
+) ([]domains.Products, error) {
+
+	const maxRadiusKm = 100.0
+
+	if key == "" {
+		return []domains.Products{}, nil
+	}
+
+	// Fetch section
+	var section domains.ContentSection
+	if err := db.
+		Where("section_key = ? AND is_active = true", key).
+		First(&section).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return []domains.Products{}, nil
+		}
+		return nil, err
+	}
+
+	cfg := section.Config
+
+	// Set limit
+	limit := model.Limit
+	if limit <= 0 {
+		limit = cfg.Limit
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 12
+	}
+
+	// Base query
+	query := db.
+		Model(&domains.Products{}).
+		Where("products.status = ?", "Available").
+		Preload("ProductImages").
+		Preload("Location").
+		Preload("Listing")
+
+	needSubCategoryJoin := model.CategorySlug != "" || len(model.SubCategorySlug) > 0
+
+	if needSubCategoryJoin {
+		query = query.Joins("JOIN subcategories sc ON sc.sub_category_id = products.sub_category_id")
+	}
+
+	if model.CategorySlug != "" {
+		query = query.
+			Joins("JOIN categories c ON c.category_id = sc.parent_category_id").
+			Where("c.category_slug = ?", model.CategorySlug)
+	}
+
+	if len(model.SubCategorySlug) > 0 {
+		query = query.Where("sc.sub_category_slug IN ?", model.SubCategorySlug)
+	}
+
+	// Price filter
+	if model.MinPrice > 0 {
+		query = query.Where("products.price >= ?", model.MinPrice)
+	}
+	if model.MaxPrice > 0 && model.MaxPrice < 999999999 {
+		query = query.Where("products.price <= ?", model.MaxPrice)
+	}
+
+	// Section config filters
+	if cfg.Filters != nil {
+		if v, ok := cfg.Filters["status"].(string); ok && v != "" {
+			query = query.Where("products.status = ?", v)
+		}
+		if v, ok := cfg.Filters["condition"].(string); ok && v != "" {
+			query = query.Where("products.condition = ?", v)
+		}
+	}
+
+	// === SORTING LOGIC (FINAL VERSION) ===
+	if model.SortBy == "" || model.SortBy == "default" {
+		// No user sort → use section strategy
+		switch cfg.Strategy {
+		case "trending":
+			query = query.Order("products.view_count DESC")
+		case "newly_listed":
+			query = query.Order("products.created_at DESC")
+		default:
+			query = query.Order("products.created_at DESC")
+		}
+	} else {
+		// User explicitly chose a sort → honor it
+		switch model.SortBy {
+		case "price_asc":
+			query = query.Order("products.price ASC")
+		case "price_desc":
+			query = query.Order("products.price DESC")
+		case "oldest":
+			query = query.Order("products.created_at ASC")
+		case "latest":
+			query = query.Order("products.created_at DESC")
+		default:
+			query = query.Order("products.created_at DESC")
+		}
+	}
+
+	// Fetch with buffer
+	query = query.Limit(limit * 2)
+
+	var products []domains.Products
+	if err := query.Find(&products).Error; err != nil {
+		return nil, err
+	}
+
+	if len(products) == 0 {
+		return []domains.Products{}, nil
+	}
+
+	// Radius filter (skip for trending/newly_listed)
+	useRadius :=
+		model.Lat != 0 &&
+			model.Lng != 0 &&
+			key != "newly_listed" &&
+			key != "trending"
+
+	if !useRadius {
+		if len(products) > limit {
+			products = products[:limit]
+		}
+		return products, nil
+	}
+
+	userPoint := geo.NewPoint(model.Lat, model.Lng)
+	filtered := make([]domains.Products, 0, len(products))
+	distances := make(map[int]float64)
+
+	for _, p := range products {
+		if p.Location.Latitude == 0 || p.Location.Longitude == 0 {
+			continue
+		}
+
+		productPoint := geo.NewPoint(p.Location.Latitude, p.Location.Longitude)
+		d := userPoint.GreatCircleDistance(productPoint)
+
+		if d <= maxRadiusKm {
+			filtered = append(filtered, p)
+			distances[p.ProductId] = d
+		}
+	}
+
+	if len(filtered) == 0 {
+		return []domains.Products{}, nil
+	}
+
+	sort.SliceStable(filtered, func(i, j int) bool {
+		return distances[filtered[i].ProductId] < distances[filtered[j].ProductId]
+	})
+
+	if len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+
+	return filtered, nil
 }
 
 func (repo *ProductRepoMemberImpl) Delete(db *gorm.DB, product domains.Products) error {
@@ -189,4 +570,286 @@ func (repo *ProductRepoMemberImpl) Delete(db *gorm.DB, product domains.Products)
 	}
 
 	return db.Delete(&domains.Products{}, product.ProductId).Error
+}
+
+func (repo *ProductRepoMemberImpl) Search(db *gorm.DB, title string, filter *product.FilterModel) ([]domains.Products, error) {
+	const maxRadiusKm = 100.0
+
+	// Return empty if lat/lng not set
+	if filter.Lat == 0 && filter.Lng == 0 {
+		return []domains.Products{}, nil
+	}
+
+	// Apply default values for price range
+	minPrice := filter.MinPrice
+	maxPrice := filter.MaxPrice
+	if minPrice < 0 {
+		minPrice = 0
+	}
+	if maxPrice <= 0 {
+		maxPrice = 999999999
+	}
+
+	// Apply default limit (max 100, default 20)
+	limit := filter.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+
+	// Apply default sort
+	sortBy := filter.SortBy
+	if sortBy == "" {
+		sortBy = "latest"
+	}
+
+	// Step 1: Build base query with title search
+	query := db.Model(&domains.Products{}).
+		Where("title ILIKE ?", "%"+title+"%").
+		Where("price >= ? AND price <= ?", minPrice, maxPrice).
+		Where("status = ?", "Available")
+
+	// Step 2: Apply category filter if provided
+	if filter.CategorySlug != "" {
+		var parentCategory domains.Categories
+		if err := db.Where("category_slug = ?", filter.CategorySlug).First(&parentCategory).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return []domains.Products{}, nil
+			}
+			return nil, err
+		}
+
+		// Determine subcategories
+		var subCategoryIds []int
+		if len(filter.SubCategorySlug) > 0 {
+			if err := db.Model(&domains.SubCategories{}).
+				Where("parent_category_id = ?", parentCategory.CategoryId).
+				Where("sub_category_slug IN ?", filter.SubCategorySlug).
+				Pluck("sub_category_id", &subCategoryIds).Error; err != nil {
+				return nil, err
+			}
+			if len(subCategoryIds) == 0 {
+				return []domains.Products{}, nil
+			}
+		} else {
+			if err := db.Model(&domains.SubCategories{}).
+				Where("parent_category_id = ?", parentCategory.CategoryId).
+				Pluck("sub_category_id", &subCategoryIds).Error; err != nil {
+				return nil, err
+			}
+			if len(subCategoryIds) == 0 {
+				return []domains.Products{}, nil
+			}
+		}
+
+		query = query.Where("sub_category_id IN ?", subCategoryIds)
+	}
+
+	// Step 3: Apply sorting
+	switch sortBy {
+	case "price_asc":
+		query = query.Order("products.price ASC")
+	case "price_desc":
+		query = query.Order("products.price DESC")
+	case "oldest":
+		query = query.Order("products.created_at ASC")
+	case "latest":
+		query = query.Order("products.created_at DESC")
+	default:
+		query = query.Order("products.created_at DESC")
+	}
+
+	// Step 4: Preload associations and fetch with buffer for radius filtering
+	query = query.
+		Preload("ProductImages").
+		Preload("Location").
+		Preload("Listing").
+		Limit(limit * 3)
+
+	var products []domains.Products
+	if err := query.Find(&products).Error; err != nil {
+		return nil, err
+	}
+
+	if len(products) == 0 {
+		return []domains.Products{}, nil
+	}
+
+	// Step 5: Filter by 100km radius (preserve order from DB)
+	userPoint := geo.NewPoint(filter.Lat, filter.Lng)
+	filtered := make([]domains.Products, 0, len(products))
+
+	for _, p := range products {
+		if p.Location.Latitude == 0 && p.Location.Longitude == 0 {
+			continue
+		}
+		productPoint := geo.NewPoint(p.Location.Latitude, p.Location.Longitude)
+		distance := userPoint.GreatCircleDistance(productPoint)
+		if distance <= maxRadiusKm {
+			filtered = append(filtered, p)
+			// Stop early if we already have enough items
+			if len(filtered) >= limit {
+				break
+			}
+		}
+	}
+
+	// Truncate to final limit (preserve original order from DB)
+	if len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+
+	return filtered, nil
+}
+
+func (repo *ProductRepoMemberImpl) GetProductsByUserId(
+	db *gorm.DB,
+	userId int,
+	filter product.FilterMyAds,
+) ([]domains.ProductWithWishlist, error) {
+	var results []domains.ProductWithWishlist
+	var total int64
+
+	// Step 1: Get total count (for pagination) — just count products by user
+	if err := db.Model(&domains.Products{}).
+		Where("listing_user_id = ?", userId).
+		Count(&total).Error; err != nil {
+		return nil, err
+	}
+
+	if total == 0 {
+		return []domains.ProductWithWishlist{}, nil
+	}
+
+	// Step 2: Build main query with wishlist count
+	baseQuery := db.Table("products p").
+		Select(`
+			p.*,
+			COALESCE(wc.wishlist_count, 0) AS total_wishlist
+		`).
+		Joins("LEFT JOIN (SELECT product_id, COUNT(*) as wishlist_count FROM wishlists GROUP BY product_id) wc ON p.product_id = wc.product_id").
+		Where("p.listing_user_id = ?", userId)
+
+	// Step 3: Apply sorting
+	switch filter.SortBy {
+	case "oldest_to_new":
+		baseQuery = baseQuery.Order("p.created_at ASC")
+	case "most_liked":
+		baseQuery = baseQuery.Order("total_wishlist DESC, p.created_at DESC")
+	default: // "new_to_oldest"
+		baseQuery = baseQuery.Order("p.created_at DESC")
+	}
+
+	// Step 4: Execute and scan into DTO
+	rows, err := baseQuery.Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []domains.Products
+	var productIDs []int
+
+	// First, scan all products
+	for rows.Next() {
+		var p domains.Products
+		if err := db.ScanRows(rows, &p); err != nil {
+			return nil, err
+		}
+		products = append(products, p)
+		productIDs = append(productIDs, p.ProductId)
+	}
+
+	// Step 5: Preload relations (ProductImages only, as per your code)
+	if len(productIDs) > 0 {
+		// Fetch all products again with preloads (GORM doesn't support preloads with raw joins easily)
+		var productsWithImages []domains.Products
+		if err := db.
+			Preload("ProductImages").
+			Where("product_id IN ?", productIDs).
+			Find(&productsWithImages).Error; err != nil {
+			return nil, err
+		}
+
+		// Create map for fast lookup
+		productMap := make(map[int]domains.Products)
+		for _, p := range productsWithImages {
+			productMap[p.ProductId] = p
+		}
+
+		// Rebuild results with preloaded data
+		results = make([]domains.ProductWithWishlist, len(products))
+		for i, p := range products {
+			prodWithImages, exists := productMap[p.ProductId]
+			if !exists {
+				prodWithImages = p // fallback
+			}
+			results[i] = domains.ProductWithWishlist{
+				Product:       prodWithImages,
+				TotalWishlist: 0, // will set below
+			}
+		}
+	} else {
+		results = make([]domains.ProductWithWishlist, len(products))
+		for i, p := range products {
+			results[i] = domains.ProductWithWishlist{
+				Product:       p,
+				TotalWishlist: 0,
+			}
+		}
+	}
+
+	// Step 6: Set TotalWishlist from original query (since GORM scan doesn't capture it)
+	// We'll re-run a simpler query that includes count
+	var finalResults []domains.ProductWithWishlist
+	err = db.Table("products p").
+		Select("p.*, COALESCE(wc.wishlist_count, 0) AS total_wishlist").
+		Joins("LEFT JOIN (SELECT product_id, COUNT(*) as wishlist_count FROM wishlists GROUP BY product_id) wc ON p.product_id = wc.product_id").
+		Where("p.listing_user_id = ?", userId).
+		Order(getOrderByClause(filter.SortBy)). // helper
+		Scan(&finalResults).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Now preload images into finalResults
+	productIDsFinal := make([]int, len(finalResults))
+	for i, r := range finalResults {
+		productIDsFinal[i] = r.Product.ProductId
+	}
+
+	if len(productIDsFinal) > 0 {
+		var productsWithImages []domains.Products
+		if err := db.
+			Preload("ProductImages").
+			Where("product_id IN ?", productIDsFinal).
+			Find(&productsWithImages).Error; err != nil {
+			return nil, err
+		}
+
+		productMap := make(map[int]domains.Products)
+		for _, p := range productsWithImages {
+			productMap[p.ProductId] = p
+		}
+
+		for i := range finalResults {
+			if p, exists := productMap[finalResults[i].Product.ProductId]; exists {
+				finalResults[i].Product = p
+			}
+		}
+	}
+
+	return finalResults, nil
+}
+
+// Helper to avoid duplication
+func getOrderByClause(sortBy string) string {
+	switch sortBy {
+	case "oldest_to_new":
+		return "p.created_at ASC"
+	case "most_liked":
+		return "COALESCE(wc.wishlist_count, 0) DESC, p.created_at DESC"
+	default:
+		return "p.created_at DESC"
+	}
 }

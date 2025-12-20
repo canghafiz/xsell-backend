@@ -4,7 +4,7 @@ import "time"
 
 type CategoryProductSpecs struct {
 	CategoryProductSpecId int       `gorm:"primary_key;column:category_product_spec_id;auto_increment"`
-	CategoryId            int       `gorm:"column:category_id"`
+	SubCategoryId         int       `gorm:"column:sub_category_id"`
 	IsMainSpec            bool      `gorm:"column:is_main_spec"`
 	SpecTypeTitle         string    `gorm:"column:spec_type_title"`
 	SpecName              string    `gorm:"column:spec_name"`

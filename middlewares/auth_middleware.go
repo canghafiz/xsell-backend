@@ -58,15 +58,6 @@ func AuthMiddleware(db *gorm.DB, userRepo repositories.UserRepo, jwtKey string) 
 			return
 		}
 
-		// Extract phone number verified status
-		phoneNumVerified, okVer := result["phonenumber_verified"].(bool)
-		if !okVer || phoneNumVerified == false {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"message": "Phone number verified is required",
-			})
-			return
-		}
-
 		// Check Token in DB
 		tokenModel := domains.Users{
 			Email: email,
