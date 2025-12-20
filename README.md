@@ -145,7 +145,7 @@ API Documentation
 
 API documentation dapat diakses di:
 
--   https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/canghafiz/xsell-backend/main/api-doc.yml
+-   https://documenter.getpostman.com/view/18098423/2sB3dWr6zU
 
 Contributing
 ------------
