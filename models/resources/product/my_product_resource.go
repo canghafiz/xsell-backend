@@ -1,6 +1,9 @@
 package product
 
-import "be/models/domains"
+import (
+	"be/models/domains"
+	"time"
+)
 
 type MyProductResource struct {
 	ProductId int                   `json:"product_id"`
@@ -11,6 +14,7 @@ type MyProductResource struct {
 	TotalLike int                   `json:"total_like"`
 	Price     float64               `json:"price"`
 	Status    domains.ProductStatus `json:"status"`
+	CreatedAt time.Time             `json:"created_at"`
 }
 
 func ToMyProductResource(product domains.ProductWithWishlist) MyProductResource {
@@ -23,6 +27,7 @@ func ToMyProductResource(product domains.ProductWithWishlist) MyProductResource 
 		TotalLike: product.TotalWishlist,
 		Price:     product.Product.Price,
 		Status:    product.Product.Status,
+		CreatedAt: product.Product.CreatedAt,
 	}
 }
 

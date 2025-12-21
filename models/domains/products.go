@@ -31,8 +31,8 @@ type Products struct {
 }
 
 type ProductWithWishlist struct {
-	Product       Products `json:"product"`
-	TotalWishlist int      `json:"total_wishlist"`
+	Product       Products `gorm:"embedded"`
+	TotalWishlist int      `gorm:"column:total_wishlist"`
 }
 
 func (p *Products) BeforeCreate(tx *gorm.DB) error {

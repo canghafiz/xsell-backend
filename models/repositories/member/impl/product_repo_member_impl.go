@@ -706,150 +706,65 @@ func (repo *ProductRepoMemberImpl) GetProductsByUserId(
 	userId int,
 	filter product.FilterMyAds,
 ) ([]domains.ProductWithWishlist, error) {
-	var results []domains.ProductWithWishlist
-	var total int64
 
-	// Step 1: Get total count (for pagination) — just count products by user
-	if err := db.Model(&domains.Products{}).
-		Where("listing_user_id = ?", userId).
-		Count(&total).Error; err != nil {
+	var results []domains.ProductWithWishlist
+
+	// base query
+	query := db.
+		Table("products p").
+		Select(`
+			p.*,
+			COUNT(w.product_id) AS total_wishlist
+		`).
+		Joins("LEFT JOIN wishlists w ON w.product_id = p.product_id").
+		Where("p.listing_user_id = ?", userId).
+		Group("p.product_id")
+
+	// sorting
+	switch filter.SortBy {
+	case "oldest_to_new":
+		query = query.Order("p.created_at ASC")
+	case "most_liked":
+		query = query.Order("total_wishlist DESC, p.created_at DESC")
+	default:
+		query = query.Order("p.created_at DESC")
+	}
+
+	// execute
+	if err := query.Scan(&results).Error; err != nil {
 		return nil, err
 	}
 
-	if total == 0 {
+	if len(results) == 0 {
 		return []domains.ProductWithWishlist{}, nil
 	}
 
-	// Step 2: Build main query with wishlist count
-	baseQuery := db.Table("products p").
-		Select(`
-			p.*,
-			COALESCE(wc.wishlist_count, 0) AS total_wishlist
-		`).
-		Joins("LEFT JOIN (SELECT product_id, COUNT(*) as wishlist_count FROM wishlists GROUP BY product_id) wc ON p.product_id = wc.product_id").
-		Where("p.listing_user_id = ?", userId)
-
-	// Step 3: Apply sorting
-	switch filter.SortBy {
-	case "oldest_to_new":
-		baseQuery = baseQuery.Order("p.created_at ASC")
-	case "most_liked":
-		baseQuery = baseQuery.Order("total_wishlist DESC, p.created_at DESC")
-	default: // "new_to_oldest"
-		baseQuery = baseQuery.Order("p.created_at DESC")
+	// collect product IDs
+	productIDs := make([]int, 0, len(results))
+	for _, r := range results {
+		productIDs = append(productIDs, r.Product.ProductId)
 	}
 
-	// Step 4: Execute and scan into DTO
-	rows, err := baseQuery.Rows()
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
+	// preload images
 	var products []domains.Products
-	var productIDs []int
-
-	// First, scan all products
-	for rows.Next() {
-		var p domains.Products
-		if err := db.ScanRows(rows, &p); err != nil {
-			return nil, err
-		}
-		products = append(products, p)
-		productIDs = append(productIDs, p.ProductId)
-	}
-
-	// Step 5: Preload relations (ProductImages only, as per your code)
-	if len(productIDs) > 0 {
-		// Fetch all products again with preloads (GORM doesn't support preloads with raw joins easily)
-		var productsWithImages []domains.Products
-		if err := db.
-			Preload("ProductImages").
-			Where("product_id IN ?", productIDs).
-			Find(&productsWithImages).Error; err != nil {
-			return nil, err
-		}
-
-		// Create map for fast lookup
-		productMap := make(map[int]domains.Products)
-		for _, p := range productsWithImages {
-			productMap[p.ProductId] = p
-		}
-
-		// Rebuild results with preloaded data
-		results = make([]domains.ProductWithWishlist, len(products))
-		for i, p := range products {
-			prodWithImages, exists := productMap[p.ProductId]
-			if !exists {
-				prodWithImages = p // fallback
-			}
-			results[i] = domains.ProductWithWishlist{
-				Product:       prodWithImages,
-				TotalWishlist: 0, // will set below
-			}
-		}
-	} else {
-		results = make([]domains.ProductWithWishlist, len(products))
-		for i, p := range products {
-			results[i] = domains.ProductWithWishlist{
-				Product:       p,
-				TotalWishlist: 0,
-			}
-		}
-	}
-
-	// Step 6: Set TotalWishlist from original query (since GORM scan doesn't capture it)
-	// We'll re-run a simpler query that includes count
-	var finalResults []domains.ProductWithWishlist
-	err = db.Table("products p").
-		Select("p.*, COALESCE(wc.wishlist_count, 0) AS total_wishlist").
-		Joins("LEFT JOIN (SELECT product_id, COUNT(*) as wishlist_count FROM wishlists GROUP BY product_id) wc ON p.product_id = wc.product_id").
-		Where("p.listing_user_id = ?", userId).
-		Order(getOrderByClause(filter.SortBy)). // helper
-		Scan(&finalResults).Error
-
-	if err != nil {
+	if err := db.
+		Preload("ProductImages").
+		Where("product_id IN ?", productIDs).
+		Find(&products).Error; err != nil {
 		return nil, err
 	}
 
-	// Now preload images into finalResults
-	productIDsFinal := make([]int, len(finalResults))
-	for i, r := range finalResults {
-		productIDsFinal[i] = r.Product.ProductId
+	// mapping
+	productMap := make(map[int]domains.Products)
+	for _, p := range products {
+		productMap[p.ProductId] = p
 	}
 
-	if len(productIDsFinal) > 0 {
-		var productsWithImages []domains.Products
-		if err := db.
-			Preload("ProductImages").
-			Where("product_id IN ?", productIDsFinal).
-			Find(&productsWithImages).Error; err != nil {
-			return nil, err
-		}
-
-		productMap := make(map[int]domains.Products)
-		for _, p := range productsWithImages {
-			productMap[p.ProductId] = p
-		}
-
-		for i := range finalResults {
-			if p, exists := productMap[finalResults[i].Product.ProductId]; exists {
-				finalResults[i].Product = p
-			}
+	for i := range results {
+		if p, ok := productMap[results[i].Product.ProductId]; ok {
+			results[i].Product = p
 		}
 	}
 
-	return finalResults, nil
-}
-
-// Helper to avoid duplication
-func getOrderByClause(sortBy string) string {
-	switch sortBy {
-	case "oldest_to_new":
-		return "p.created_at ASC"
-	case "most_liked":
-		return "COALESCE(wc.wishlist_count, 0) DESC, p.created_at DESC"
-	default:
-		return "p.created_at DESC"
-	}
+	return results, nil
 }

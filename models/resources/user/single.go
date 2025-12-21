@@ -1,6 +1,9 @@
 package user
 
-import "be/models/domains"
+import (
+	"be/models/domains"
+	"time"
+)
 
 type SingleResource struct {
 	UserId       int              `json:"user_id"`
@@ -9,6 +12,7 @@ type SingleResource struct {
 	FirstName    string           `json:"first_name"`
 	LastName     *string          `json:"last_name"`
 	PhotoProfile *string          `json:"photo_profile"`
+	CreatedAt    time.Time        `json:"created_at"`
 }
 
 func ToSingleResource(user *domains.Users) *SingleResource {
@@ -19,5 +23,6 @@ func ToSingleResource(user *domains.Users) *SingleResource {
 		FirstName:    user.FirstName,
 		LastName:     user.LastName,
 		PhotoProfile: user.PhotoProfileUrl,
+		CreatedAt:    user.CreatedAt,
 	}
 }
