@@ -50,6 +50,7 @@ func NewRouter(r Router) *Router {
 		{
 			userGroup.POST("/sendPasswordReset", r.Dependency.OtpCont.SendPasswordReset)
 			userGroup.POST("/checkOtpPassword", r.Dependency.OtpCont.CheckOtpPassword)
+			userGroup.GET("/:userId", r.Dependency.UserCont.GetByUserId)
 
 			middleware := userGroup.Use(pwMiddleware)
 			{
@@ -97,13 +98,15 @@ func NewRouter(r Router) *Router {
 			productGroup.GET("/category", r.MemberDependency.ProductCont.GetByCategory)
 			productGroup.GET("/section/:sectionKey", r.MemberDependency.ProductCont.GetBySectionKey)
 			productGroup.GET("/search", r.MemberDependency.ProductCont.Search)
+			productGroup.GET("/user/:userId", r.MemberDependency.ProductCont.GetProductsByUserId)
+			productGroup.PATCH("/viewCount/:productId", r.MemberDependency.ProductCont.UpdateViewCount)
 
 			authMiddleware := productGroup.Use(authMiddleware)
 			{
 				authMiddleware.POST("/", r.MemberDependency.ProductCont.Create)
 				authMiddleware.PUT("/:productId", r.MemberDependency.ProductCont.Update)
+				authMiddleware.PATCH("/:productId/status", r.MemberDependency.ProductCont.UpdateStatus)
 				authMiddleware.DELETE("/:productId", r.MemberDependency.ProductCont.Delete)
-				authMiddleware.GET("/user/:userId", r.MemberDependency.ProductCont.GetProductsByUserId)
 			}
 		}
 
@@ -129,6 +132,16 @@ func NewRouter(r Router) *Router {
 		productSpecGroup := memberGroup.Group("/productSpec")
 		{
 			productSpecGroup.GET("/sub/:subId", r.MemberDependency.ProductSpecCont.GetProductSpecBySubId)
+		}
+
+		wishlistGroup := memberGroup.Group("/wishlist")
+		{
+			authMiddleware := wishlistGroup.Use(authMiddleware)
+			{
+				authMiddleware.POST("/", r.MemberDependency.WishlistCont.Update)
+				authMiddleware.GET("/check", r.MemberDependency.WishlistCont.CheckProductOnWishlist)
+				authMiddleware.GET("/user/:userId", r.MemberDependency.WishlistCont.GetWishlistsByUserId)
+			}
 		}
 	}
 

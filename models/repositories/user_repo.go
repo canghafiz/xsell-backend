@@ -15,5 +15,6 @@ type UserRepo interface {
 	ChangePassword(db *gorm.DB, user domains.Users) error
 	FindByEmail(db *gorm.DB, email string) (*domains.Users, error)
 	CheckPasswordValid(db *gorm.DB, user domains.Users) (bool, error)
+	GetByUserId(db *gorm.DB, userId int) (*domains.Users, error)
 	ResetToken(db *gorm.DB, email string) error
 }

@@ -322,7 +322,7 @@ func (cont *ProductContMemberImpl) GetBySectionKey(context *gin.Context) {
 		SortBy:          sortBy,
 		MinPrice:        minPrice,
 		MaxPrice:        maxPrice,
-		Limit:           limit, // FIX: Sekarang limit dari query digunakan
+		Limit:           limit,
 		Lat:             lat,
 		Lng:             lng,
 	}
@@ -461,6 +461,65 @@ func (cont *ProductContMemberImpl) GetProductsByUserId(context *gin.Context) {
 
 	if err := helpers.WriteToResponseBody(context, response.Code, response); err != nil {
 		exceptions.ErrorHandler(context, err)
+		return
+	}
+}
+
+func (cont *ProductContMemberImpl) UpdateStatus(context *gin.Context) {
+	productIdStr := context.Param("productId")
+	productId, _ := strconv.Atoi(productIdStr)
+
+	// Parse Request Body
+	request := product.UpdateStatusRequest{}
+	request.ProductId = productId
+	errParse := helpers.ReadFromRequestBody(context, &request)
+	if errParse != nil {
+		exceptions.ErrorHandler(context, errParse)
+		return
+	}
+
+	// Call Service
+	errServ := cont.ProductServ.UpdateStatus(request)
+	if errServ != nil {
+		exceptions.ErrorHandler(context, errServ)
+		return
+	}
+
+	// Response
+	response := helpers.ApiResponse{
+		Success: true,
+		Code:    200,
+		Data:    nil,
+	}
+
+	errResponse := helpers.WriteToResponseBody(context, response.Code, response)
+	if errResponse != nil {
+		exceptions.ErrorHandler(context, errResponse)
+		return
+	}
+}
+
+func (cont *ProductContMemberImpl) UpdateViewCount(context *gin.Context) {
+	productIdStr := context.Param("productId")
+	productId, _ := strconv.Atoi(productIdStr)
+
+	// Call Service
+	errServ := cont.ProductServ.UpdateViewCount(productId)
+	if errServ != nil {
+		exceptions.ErrorHandler(context, errServ)
+		return
+	}
+
+	// Response
+	response := helpers.ApiResponse{
+		Success: true,
+		Code:    200,
+		Data:    nil,
+	}
+
+	errResponse := helpers.WriteToResponseBody(context, response.Code, response)
+	if errResponse != nil {
+		exceptions.ErrorHandler(context, errResponse)
 		return
 	}
 }

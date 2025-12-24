@@ -14,5 +14,7 @@ type ProductServMember interface {
 	GetBySectionKey(key string, filter *product.FilterModel) ([]res.GeneralResource, error)
 	Search(title string, filter *product.FilterModel) ([]res.GeneralResource, error)
 	GetProductsByUserId(userId int, filter product.FilterMyAds) ([]res.MyProductResource, error)
+	UpdateStatus(request product.UpdateStatusRequest) error
+	UpdateViewCount(productId int) error
 	Delete(productId int) error
 }

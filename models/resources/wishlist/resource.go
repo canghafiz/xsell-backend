@@ -6,27 +6,8 @@ import (
 )
 
 type Resource struct {
-	WishlistId int             `json:"wishlist_id"`
-	Product    ProductResource `json:"product"`
-}
-
-func ToResource(wishlist domains.WishlistItem) Resource {
-	return Resource{
-		WishlistId: wishlist.WishlistId,
-		Product:    ToProductResource(wishlist.Product, int(wishlist.LikeCount)),
-	}
-}
-
-func ToResources(wishlists []domains.WishlistItem) []Resource {
-	var items []Resource
-	for _, wishlist := range wishlists {
-		items = append(items, ToResource(wishlist))
-	}
-	return items
-}
-
-type ProductResource struct {
 	ProductId int                   `json:"product_id"`
+	Slug      string                `json:"slug"`
 	Title     string                `json:"title"`
 	ViewCount int                   `json:"view_count"`
 	MainImage string                `json:"main_image"`
@@ -36,17 +17,36 @@ type ProductResource struct {
 	CreatedAt time.Time             `json:"created_at"`
 }
 
-func ToProductResource(product domains.Products, totalLike int) ProductResource {
-	mainImage := product.ProductImages[0].ImageUrl
+func ToResource(wishlist domains.WishlistWithTotalLike) Resource {
 
-	return ProductResource{
+	var mainImage string
+	images := wishlist.Wishlist.Product.ProductImages
+
+	if len(images) > 0 {
+		mainImage = images[0].ImageUrl
+	}
+
+	product := wishlist.Wishlist.Product
+
+	return Resource{
 		ProductId: product.ProductId,
+		Slug:      product.ProductSlug,
 		Title:     product.Title,
 		ViewCount: product.ViewCount,
+		MainImage: mainImage,
+		TotalLike: wishlist.TotalWishlist,
 		Price:     product.Price,
 		Status:    product.Status,
-		MainImage: mainImage,
-		TotalLike: totalLike,
-		CreatedAt: product.CreatedAt,
+		CreatedAt: wishlist.Wishlist.CreatedAt,
 	}
+}
+
+func ToResources(wishlists []domains.WishlistWithTotalLike) []Resource {
+	resources := make([]Resource, 0, len(wishlists))
+
+	for _, wishlist := range wishlists {
+		resources = append(resources, ToResource(wishlist))
+	}
+
+	return resources
 }

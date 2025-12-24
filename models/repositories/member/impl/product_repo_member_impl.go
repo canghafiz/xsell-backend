@@ -558,18 +558,60 @@ func (repo *ProductRepoMemberImpl) GetBySectionKey(
 	return filtered, nil
 }
 
-func (repo *ProductRepoMemberImpl) Delete(db *gorm.DB, product domains.Products) error {
+func (repo *ProductRepoMemberImpl) Delete(
+	db *gorm.DB,
+	product domains.Products,
+) ([]string, error) {
+
 	if product.ProductId == 0 {
-		return gorm.ErrInvalidValue
+		return nil, gorm.ErrInvalidValue
 	}
 
+	tx := db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	// 1. Cek product exist
 	var count int64
-	db.Model(&domains.Products{}).Where("product_id = ?", product.ProductId).Count(&count)
-	if count == 0 {
-		return gorm.ErrRecordNotFound
+	if err := tx.Model(&domains.Products{}).
+		Where("product_id = ?", product.ProductId).
+		Count(&count).Error; err != nil {
+		tx.Rollback()
+		return nil, err
 	}
 
-	return db.Delete(&domains.Products{}, product.ProductId).Error
+	if count == 0 {
+		tx.Rollback()
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	// 2. Ambil image urls
+	var images []domains.ProductImages
+	if err := tx.
+		Where("product_id = ?", product.ProductId).
+		Find(&images).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	imageUrls := make([]string, 0, len(images))
+	for _, img := range images {
+		imageUrls = append(imageUrls, img.ImageUrl)
+	}
+
+	// 3. Delete product
+	if err := tx.Delete(&domains.Products{}, product.ProductId).Error; err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	// 4. Commit
+	if err := tx.Commit().Error; err != nil {
+		return nil, err
+	}
+
+	return imageUrls, nil
 }
 
 func (repo *ProductRepoMemberImpl) Search(db *gorm.DB, title string, filter *product.FilterModel) ([]domains.Products, error) {
@@ -767,4 +809,34 @@ func (repo *ProductRepoMemberImpl) GetProductsByUserId(
 	}
 
 	return results, nil
+}
+
+func (repo *ProductRepoMemberImpl) UpdateViewCount(db *gorm.DB, productId int) error {
+	err := db.
+		Model(&domains.Products{}).
+		Where("product_id = ?", productId).
+		Updates(map[string]interface{}{
+			"view_count": gorm.Expr("view_count + 1"),
+		}).Error
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *ProductRepoMemberImpl) UpdateStatus(db *gorm.DB, product domains.Products) error {
+	err := db.
+		Model(&domains.Products{}).
+		Where("product_id = ?", product.ProductId).
+		Updates(map[string]interface{}{
+			"status": product.Status,
+		}).Error
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

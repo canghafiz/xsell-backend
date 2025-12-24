@@ -11,6 +11,11 @@ type Wishlist struct {
 	Product    Products  `gorm:"foreignKey:product_id;references:product_id"`
 }
 
+type WishlistWithTotalLike struct {
+	Wishlist      Wishlist `gorm:"embedded"`
+	TotalWishlist int      `gorm:"column:total_wishlist"`
+}
+
 func (Wishlist) TableName() string {
 	return "wishlists"
 }

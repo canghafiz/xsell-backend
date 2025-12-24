@@ -11,5 +11,7 @@ type ProductContMember interface {
 	GetBySectionKey(context *gin.Context)
 	Search(context *gin.Context)
 	GetProductsByUserId(context *gin.Context)
+	UpdateStatus(context *gin.Context)
+	UpdateViewCount(context *gin.Context)
 	Delete(context *gin.Context)
 }

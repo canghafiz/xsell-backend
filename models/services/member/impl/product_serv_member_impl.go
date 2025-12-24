@@ -21,10 +21,11 @@ type ProductServMemberImpl struct {
 	Validator   *validator.Validate
 	ProductRepo member.ProductRepoMember
 	RedisServ   services.RedisService
+	StorageServ services.FileServ
 }
 
-func NewProductServMemberImpl(db *gorm.DB, validator *validator.Validate, productRepo member.ProductRepoMember, redisServ services.RedisService) *ProductServMemberImpl {
-	return &ProductServMemberImpl{Db: db, Validator: validator, ProductRepo: productRepo, RedisServ: redisServ}
+func NewProductServMemberImpl(db *gorm.DB, validator *validator.Validate, productRepo member.ProductRepoMember, redisServ services.RedisService, storageServ services.FileServ) *ProductServMemberImpl {
+	return &ProductServMemberImpl{Db: db, Validator: validator, ProductRepo: productRepo, RedisServ: redisServ, StorageServ: storageServ}
 }
 
 func (serv *ProductServMemberImpl) Create(request product.CreateProductRequest) error {
@@ -245,14 +246,44 @@ func (serv *ProductServMemberImpl) GetProductsByUserId(userId int, filter produc
 	return res.ToMyProductResources(result), nil
 }
 
+func (serv *ProductServMemberImpl) UpdateStatus(request product.UpdateStatusRequest) error {
+	model := product.UpdateStatusRequestToDomain(request)
+
+	// Call repo
+	err := serv.ProductRepo.UpdateStatus(serv.Db, model)
+	if err != nil {
+		log.Printf("[ProductRepoMember.UpdateStatus] error: %v", err)
+		return fmt.Errorf("failed to update status product, please try again later")
+	}
+	return nil
+}
+
+func (serv *ProductServMemberImpl) UpdateViewCount(productId int) error {
+	// Call repo
+	err := serv.ProductRepo.UpdateViewCount(serv.Db, productId)
+	if err != nil {
+		log.Printf("[ProductRepoMember.UpdateViewCount] error: %v", err)
+		return fmt.Errorf("failed to update view_count product, please try again later")
+	}
+	return nil
+}
+
 func (serv *ProductServMemberImpl) Delete(productId int) error {
 	// Call repo
-	err := serv.ProductRepo.Delete(serv.Db, domains.Products{
+	images, err := serv.ProductRepo.Delete(serv.Db, domains.Products{
 		ProductId: productId,
 	})
 	if err != nil {
 		log.Printf("[ProductRepoMember.Delete] error: %v", err)
 		return fmt.Errorf("failed to delete by product id, please try again later")
+	}
+
+	// Delete files
+	for _, file := range images {
+		errDelFile := serv.StorageServ.DeleteFile(file)
+		if errDelFile != nil {
+			log.Printf("[FileServ.DeleteFile] error: %v", errDelFile)
+		}
 	}
 
 	return nil

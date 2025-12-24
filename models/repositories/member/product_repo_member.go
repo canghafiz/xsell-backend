@@ -16,5 +16,7 @@ type ProductRepoMember interface {
 	GetBySectionKey(db *gorm.DB, key string, model product.FilterModel) ([]domains.Products, error)
 	Search(db *gorm.DB, title string, filter *product.FilterModel) ([]domains.Products, error)
 	GetProductsByUserId(db *gorm.DB, userId int, filter product.FilterMyAds) ([]domains.ProductWithWishlist, error)
-	Delete(db *gorm.DB, product domains.Products) error
+	UpdateStatus(db *gorm.DB, product domains.Products) error
+	UpdateViewCount(db *gorm.DB, productId int) error
+	Delete(db *gorm.DB, product domains.Products) ([]string, error)
 }

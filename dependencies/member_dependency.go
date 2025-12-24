@@ -32,6 +32,7 @@ type MemberDependency struct {
 	SubCategoryCont cont.SubCategoryContMember
 	CategoryCont    cont.CategoryContMember
 	ProductSpecCont cont.ProductSpecContMember
+	WishlistCont    cont.WishlistContMember
 }
 
 func NewMemberDependency(db *gorm.DB, validator *validator.Validate, redisConfig domains.RedisConfig, jwtKey string) *MemberDependency {
@@ -42,15 +43,18 @@ func NewMemberDependency(db *gorm.DB, validator *validator.Validate, redisConfig
 	subCategoryRepo := implRepo.NewSubCategoryRepoMemberImpl()
 	categoryRepo := implRepo.NewCategoryRepoMemberImpl()
 	productSpecRepo := implRepo.NewProductSpecRepoMemberImpl()
+	wishlistRepo := implRepo.NewWishlistRepoMemberImpl()
 
 	// Services
 	redisServ := implGeneralServ.NewRedisServiceImpl(redisConfig)
+	fileServ := implGeneralServ.NewFileServImpl()
 	userServ := implServ.NewUserServMemberImpl(userRepo, db, validator, jwtKey)
-	productServ := implServ.NewProductServMemberImpl(db, validator, productRepo, redisServ)
+	productServ := implServ.NewProductServMemberImpl(db, validator, productRepo, redisServ, fileServ)
 	pageLayoutServ := implServ.NewPageLayoutServMemberImpl(db, redisServ, pageLayoutRepo)
 	subCategoryServ := implServ.NewSubCategorySerMemberImpl(db, subCategoryRepo, redisServ)
 	categoryServ := implServ.NewCategoryServMemberImpl(db, categoryRepo, redisServ)
 	productSpecServ := implServ.NewProductSpecServMemberImpl(db, productSpecRepo, redisServ)
+	wishlistServ := implServ.NewWishlistServMemberImpl(db, wishlistRepo)
 
 	// Controllers
 	userCont := implCont.NewUserContMemberImpl(userServ)
@@ -59,8 +63,10 @@ func NewMemberDependency(db *gorm.DB, validator *validator.Validate, redisConfig
 	subCategoryCont := implCont.NewSubCategoryContMemberImpl(subCategoryServ)
 	categoryCont := implCont.NewCategoryContMemberImpl(categoryServ)
 	productSpecCont := implCont.NewProductSpecContMemberImpl(productSpecServ)
+	wishlistCont := implCont.NewWishlistContMemberImpl(wishlistServ)
 
 	return &MemberDependency{Db: db, RedisServ: redisServ, UserRepo: userRepo, UserCont: userCont, ProductCont: productCont, PageLayoutCont: pageLayoutCont, SubCategoryCont: subCategoryCont, CategoryCont: categoryCont,
 		ProductSpecCont: productSpecCont,
+		WishlistCont:    wishlistCont,
 	}
 }

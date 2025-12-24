@@ -4,6 +4,7 @@ import (
 	"be/helpers"
 	"be/models/repositories"
 	"be/models/requests/user"
+	user2 "be/models/resources/user"
 	"fmt"
 	"log"
 
@@ -59,4 +60,14 @@ func (serv *UserServImpl) ChangePw(request user.ChangePwRequest, jwtValue string
 	}
 
 	return nil
+}
+
+func (serv *UserServImpl) GetByUserId(userId int) (*user2.SingleResource, error) {
+	// Call repo
+	result, errRepo := serv.UserRepo.GetByUserId(serv.Db, userId)
+	if errRepo != nil {
+		log.Printf("[UserRepo.GetByUserId] error: %v", errRepo)
+		return nil, fmt.Errorf("failed to get user by user id, please try again later")
+	}
+	return user2.ToSingleResource(result), nil
 }

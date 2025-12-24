@@ -3,6 +3,7 @@ package impl
 import (
 	"be/helpers"
 	"be/models/domains"
+	"errors"
 	"fmt"
 	"time"
 
@@ -161,4 +162,27 @@ func (repo *UserRepoImpl) ResetToken(db *gorm.DB, email string) error {
 	}
 
 	return nil
+}
+
+func (repo *UserRepoImpl) GetByUserId(
+	db *gorm.DB,
+	userId int,
+) (*domains.Users, error) {
+
+	var user domains.Users
+
+	err := db.
+		Preload("Verified").
+		Where("user_id = ?", userId).
+		First(&user).
+		Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil // user not found
+		}
+		return nil, err // other database error
+	}
+
+	return &user, nil
 }
